@@ -521,7 +521,7 @@
                 xml += `      <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
                 xml += `      <ISINVOICE>Yes</ISINVOICE>\n`;
 
-                // Exact Tally-matched LEDGERENTRIES format for Party
+                // 1. Party Ledger Entry with exact negative amount and bill allocation matching the sample
                 xml += `      <LEDGERENTRIES.LIST>\n`;
                 xml += `       <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
                 xml += `       <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n`;
@@ -534,18 +534,17 @@
                 xml += `       </BILLALLOCATIONS.LIST>\n`;
                 xml += `      </LEDGERENTRIES.LIST>\n`;
 
-                // Sales Ledger
+                // 2. Sales Ledger Entry matching the sample structure
                 for (let [rate, amt] of Object.entries(taxMap)) {
-                    let taxableAmt = subtotal; 
                     xml += `      <LEDGERENTRIES.LIST>\n`;
                     xml += `       <LEDGERNAME>SALES B2C @${rate}%</LEDGERNAME>\n`;
                     xml += `       <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
                     xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
-                    xml += `       <AMOUNT>${taxableAmt.toFixed(2)}</AMOUNT>\n`;
+                    xml += `       <AMOUNT>${subtotal.toFixed(2)}</AMOUNT>\n`;
                     xml += `      </LEDGERENTRIES.LIST>\n`;
                 }
 
-                // Tax Ledgers (CGST & SGST)
+                // 3. Tax Ledgers (CGST & SGST) matching sample format
                 for (let [rate, taxAmt] of Object.entries(taxMap)) {
                     let halfTax = taxAmt / 2;
                     let halfRate = parseFloat(rate) / 2;
