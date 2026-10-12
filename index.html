@@ -6,6 +6,10 @@
     <title>Grx Life Retail Nutrition - Sales Invoice & Tally Export</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Firebase App & Realtime Database SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
 
@@ -71,8 +75,8 @@
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div>
-                    <h2 class="text-lg font-bold text-slate-900">Recorded Sales Invoices</h2>
-                    <p class="text-xs text-slate-500">Manage your bills and download direct Tally-compatible XML vouchers.</p>
+                    <h2 class="text-lg font-bold text-slate-900">Recorded Sales Invoices (Cloud Synced)</h2>
+                    <p class="text-xs text-slate-500">Invoices sync instantly between your phone and computer.</p>
                 </div>
                 <div class="w-full sm:w-auto flex items-center gap-3">
                     <div class="relative w-full sm:w-64">
@@ -105,7 +109,7 @@
             <div id="emptyState" class="hidden text-center py-12">
                 <div class="text-slate-300 text-5xl mb-3"><i class="fa-solid fa-folder-open"></i></div>
                 <p class="text-slate-500 font-medium">No sales invoices recorded yet.</p>
-                <p class="text-xs text-slate-400 mt-1">Click "New Sales Invoice" to start billing your inventory.</p>
+                <p class="text-xs text-slate-400 mt-1">Click "New Sales Invoice" to start billing.</p>
             </div>
         </div>
     </main>
@@ -120,6 +124,7 @@
             
             <form id="invoiceForm" onsubmit="saveInvoice(event)" class="p-6 overflow-y-auto flex-grow space-y-6">
                 <input type="hidden" id="editIndex" value="-1">
+                <input type="hidden" id="editFirebaseKey" value="">
                 
                 <!-- General Details -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -168,8 +173,8 @@
                 <!-- Summary Totals -->
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row justify-between items-end sm:items-center gap-4">
                     <div class="text-xs text-slate-500 space-y-1">
-                        <p><span class="font-semibold text-slate-700">Sales Ledgers:</span> Automatically assigned based on item tax slab (<code class="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-mono">SALES B2C @0% / @5% / @12% / @18%</code>)</p>
-                        <p><span class="font-semibold text-slate-700">Tax Ledgers:</span> Maps to <code class="bg-indigo-50 text-indigo-700 px-1 rounded font-mono">OUTPUT CGST / SGST / IGST</code></p>
+                        <p><span class="font-semibold text-slate-700">Sales Ledgers:</span> Assigned based on item tax slab (<code class="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-mono">SALES B2C @5% / @12% / @18%</code>)</p>
+                        <p><span class="font-semibold text-slate-700">Tax Ledgers:</span> Maps to <code class="bg-indigo-50 text-indigo-700 px-1 rounded font-mono">OUTPUT CGST / SGST</code></p>
                     </div>
                     <div class="text-right space-y-1">
                         <p class="text-xs text-slate-500">Taxable Subtotal: <span id="subtotalDisplay" class="font-bold text-slate-800">₹0.00</span></p>
@@ -219,13 +224,29 @@
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
         <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
-            Grx Life Retail Nutrition Pvt Ltd &bull; Tally ERP 9 / Tally Prime XML Invoicing Integration Module
+            Grx Life Retail Nutrition Pvt Ltd &bull; Firebase Realtime Cloud Sync & Tally XML Integration
         </div>
     </footer>
 
     <!-- Application Script -->
     <script>
-        // Master Stock Inventory Provided by User (Default 5% items, can be adjusted or expanded)
+        // Your Firebase Realtime Database Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBq59UUQUh7a5eRJD8rrLpT_ukJRfDiats",
+            authDomain: "grx-life-retail-nutrition.firebaseapp.com",
+            databaseURL: "https://grx-life-retail-nutrition-default-rtdb.firebaseio.com",
+            projectId: "grx-life-retail-nutrition",
+            storageBucket: "grx-life-retail-nutrition.firebasestorage.app",
+            messagingSenderId: "365874568577",
+            appId: "1:365874568577:web:3da2bced20008e093bdc80",
+            measurementId: "G-HJTKRRV10R"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Master Stock Inventory
         const stockCatalog = [
             { name: "Aquecium D3 30 Caps", hsn: "30049099", uom: "Btl", rate: 250, gst: 5 },
             { name: "Menoquil (30 Caps)", hsn: "30049099", uom: "Btl", rate: 450, gst: 5 },
@@ -237,33 +258,35 @@
             { name: "UbiActiv QH Plus (30 Caps)", hsn: "21069091", uom: "Btl", rate: 750, gst: 18 }
         ];
 
-        // Local Storage State
-        let invoices = JSON.parse(localStorage.getItem('grx_sales_invoices')) || [
-            {
-                number: "INV-2026-001",
-                date: "2026-10-12",
-                customer: "Cash / Walk-in Customer",
-                items: [
-                    { name: "Aquecium D3 30 Caps", hsn: "30049099", uom: "Btl", qty: 2, rate: 250, gst: 5 }
-                ]
-            }
-        ];
-
+        let invoices = [];
         let currentViewInvoice = null;
 
-        // Initialize App
+        // Initialize App & Listen to Realtime Database Changes
         window.onload = function() {
             document.getElementById('invDate').valueAsDate = new Date();
-            generateNextInvoiceNo();
-            renderInvoices();
+            fetchInvoicesFromFirebase();
         };
+
+        function fetchInvoicesFromFirebase() {
+            db.ref('invoices').on('value', (snapshot) => {
+                const data = snapshot.val();
+                invoices = [];
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        invoices.push({ id: key, ...data[key] });
+                    });
+                    invoices.reverse();
+                }
+                generateNextInvoiceNo();
+                renderInvoices();
+            });
+        }
 
         function generateNextInvoiceNo() {
             const nextNo = `INV-2026-${String(invoices.length + 1).padStart(3, '0')}`;
             document.getElementById('invNumber').value = nextNo;
         }
 
-        // Modal Controllers
         function openInvoiceModal(editIdx = -1) {
             document.getElementById('invoiceModal').classList.remove('hidden');
             document.getElementById('itemsTableBody').innerHTML = '';
@@ -272,6 +295,7 @@
                 document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square mr-2"></i> Edit Sales Invoice';
                 document.getElementById('editIndex').value = editIdx;
                 const inv = invoices[editIdx];
+                document.getElementById('editFirebaseKey').value = inv.id;
                 document.getElementById('invNumber').value = inv.number;
                 document.getElementById('invDate').value = inv.date;
                 document.getElementById('invCustomer').value = inv.customer;
@@ -280,9 +304,10 @@
             } else {
                 document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-file-invoice-dollar mr-2"></i> Create Sales Invoice';
                 document.getElementById('editIndex').value = -1;
+                document.getElementById('editFirebaseKey').value = '';
                 generateNextInvoiceNo();
                 document.getElementById('invCustomer').value = 'Cash / Walk-in Customer';
-                addItemRow(); // Default 1 item row
+                addItemRow();
             }
             calculateTotals();
         }
@@ -295,10 +320,8 @@
             document.getElementById('viewModal').classList.add('hidden');
         }
 
-        // Dynamic Line Items
         function addItemRow(data = null) {
             const tbody = document.getElementById('itemsTableBody');
-            
             let optionsHTML = stockCatalog.map(s => `<option value="${s.name}" data-gst="${s.gst}" ${data && data.name === s.name ? 'selected' : ''}>${s.name} (${s.gst}% GST - ₹${s.rate})</option>`).join('');
 
             const tr = document.createElement('tr');
@@ -329,7 +352,6 @@
 
         function onItemSelect(selectElem) {
             const tr = selectElem.closest('tr');
-            const selectedOption = selectElem.options[selectElem.selectedIndex];
             const selectedItem = stockCatalog.find(s => s.name === selectElem.value);
             if (selectedItem) {
                 tr.querySelector('.item-hsn').value = selectedItem.hsn;
@@ -363,10 +385,9 @@
             document.getElementById('grandTotalDisplay').innerText = `₹${grandTotal.toFixed(2)}`;
         }
 
-        // Save Invoice Handler
         function saveInvoice(e) {
             e.preventDefault();
-            const editIdx = parseInt(document.getElementById('editIndex').value);
+            const firebaseKey = document.getElementById('editFirebaseKey').value;
             
             const items = [];
             document.querySelectorAll('.item-row').forEach(tr => {
@@ -394,18 +415,15 @@
                 items: items
             };
 
-            if (editIdx > -1) {
-                invoices[editIdx] = invoiceData;
+            if (firebaseKey) {
+                db.ref('invoices/' + firebaseKey).set(invoiceData);
             } else {
-                invoices.unshift(invoiceData);
+                db.ref('invoices').push(invoiceData);
             }
 
-            localStorage.setItem('grx_sales_invoices', JSON.stringify(invoices));
             closeInvoiceModal();
-            renderInvoices();
         }
 
-        // Render Invoices Table
         function renderInvoices() {
             const tbody = document.getElementById('invoiceTableBody');
             const emptyState = document.getElementById('emptyState');
@@ -438,9 +456,9 @@
                     <td class="p-4 text-right font-bold text-slate-900">₹${total.toFixed(2)}</td>
                     <td class="p-4 text-center">
                         <div class="flex justify-center items-center gap-2">
-                            <button onclick="viewInvoice(${invoices.indexOf(inv)})" title="View & XML" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 p-2 rounded-lg"><i class="fa-solid fa-eye"></i></button>
+                            <button onclick="viewInvoice('${inv.id}')" title="View & XML" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 p-2 rounded-lg"><i class="fa-solid fa-eye"></i></button>
                             <button onclick="openInvoiceModal(${invoices.indexOf(inv)})" title="Edit" class="text-amber-600 hover:text-amber-900 bg-amber-50 p-2 rounded-lg"><i class="fa-solid fa-pen"></i></button>
-                            <button onclick="deleteInvoice(${invoices.indexOf(inv)})" title="Delete" class="text-rose-600 hover:text-rose-900 bg-rose-50 p-2 rounded-lg"><i class="fa-solid fa-trash"></i></button>
+                            <button onclick="deleteInvoice('${inv.id}')" title="Delete" class="text-rose-600 hover:text-rose-900 bg-rose-50 p-2 rounded-lg"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </td>
                 `;
@@ -469,21 +487,18 @@
             document.getElementById('statTotalCustomers').innerText = customers.size;
         }
 
-        function deleteInvoice(idx) {
+        function deleteInvoice(id) {
             if (confirm('Are you sure you want to delete this invoice?')) {
-                invoices.splice(idx, 1);
-                localStorage.setItem('grx_sales_invoices', JSON.stringify(invoices));
-                renderInvoices();
+                db.ref('invoices/' + id).remove();
             }
         }
 
-        // Tally XML Generator Engine with OUTPUT CGST / SGST / IGST mapping
         function generateTallyXML(invList) {
             let xml = `<ENVELOPE>\n  <HEADER>\n    <TALLYREQUEST>Import Data</TALLYREQUEST>\n  </HEADER>\n  <BODY>\n    <IMPORTDATA>\n      <REQUESTDESC>\n        <REPORTNAME>Vouchers</REPORTNAME>\n      </REQUESTDESC>\n      <REQUESTDATA>\n`;
 
             invList.forEach(inv => {
                 let subtotal = 0;
-                let taxMap = {}; // Group tax by rate slab
+                let taxMap = {};
 
                 inv.items.forEach(item => {
                     let amt = item.qty * item.rate;
@@ -504,14 +519,12 @@
                 xml += `            <PARTYLEDGERNAME>${escapeXml(inv.customer)}</PARTYLEDGERNAME>\n`;
                 xml += `            <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
 
-                // Total Invoice Amount (Debit)
                 xml += `            <ALLLEDGERENTRIES.LIST>\n`;
                 xml += `              <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
                 xml += `              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n`;
                 xml += `              <AMOUNT>-${grandTotal.toFixed(2)}</AMOUNT>\n`;
                 xml += `            </ALLLEDGERENTRIES.LIST>\n`;
 
-                // Sales Ledger Allocations grouped by GST slab (Credit)
                 let slabSubtotals = {};
                 inv.items.forEach(item => {
                     let amt = item.qty * item.rate;
@@ -527,8 +540,6 @@
                     xml += `            </ALLLEDGERENTRIES.LIST>\n`;
                 }
 
-                // Tax Ledgers: OUTPUT CGST @2.5% / OUTPUT SGST @2.5% or OUTPUT IGST @5% etc.
-                // Assuming local B2C in Uttar Pradesh (splitting equally into CGST & SGST)
                 for (let [rate, taxAmt] of Object.entries(taxMap)) {
                     let halfTax = taxAmt / 2;
                     let halfRate = parseFloat(rate) / 2;
@@ -546,7 +557,6 @@
                     xml += `            </ALLLEDGERENTRIES.LIST>\n`;
                 }
 
-                // Inventory Items
                 inv.items.forEach(item => {
                     let itemAmt = item.qty * item.rate;
                     xml += `            <ALLINVENTORYENTRIES.LIST>\n`;
@@ -584,9 +594,10 @@
             });
         }
 
-        // View Single Invoice Modal
-        function viewInvoice(idx) {
-            currentViewInvoice = invoices[idx];
+        function viewInvoice(id) {
+            currentViewInvoice = invoices.find(i => i.id === id);
+            if (!currentViewInvoice) return;
+
             let subtotal = currentViewInvoice.items.reduce((acc, i) => acc + (i.qty * i.rate), 0);
             let tax = currentViewInvoice.items.reduce((acc, i) => acc + ((i.qty * i.rate) * (i.gst / 100)), 0);
             let total = subtotal + tax;
@@ -641,7 +652,7 @@
             downloadFile(xmlData, `Tally_Sales_${currentViewInvoice.number}.xml`);
         }
 
-            function exportAllTallyXML() {
+        function exportAllTallyXML() {
             if (invoices.length === 0) {
                 alert('No invoices available to export.');
                 return;
