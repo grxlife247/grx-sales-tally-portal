@@ -506,6 +506,8 @@
                     taxMap[rate] += amt * (rate / 100);
                 });
 
+                let totalTax = Object.values(taxMap).reduce((a, b) => a + b, 0);
+                let grandTotal = subtotal + totalTax;
                 let tallyDate = inv.date.replace(/-/g, '');
 
                 xml += `        <TALLYMESSAGE xmlns:UDF="TallyUDF">\n`;
@@ -516,7 +518,14 @@
                 xml += `            <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>\n`;
                 xml += `            <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
 
-                // 1. Output Tax Ledgers (Credit Entries - CGST & SGST placed directly in ledger entries)
+                // 1. Party Ledger Entry (Debit - Grand Total) with ISDEEMEDPOSITIVE = Yes
+                xml += `            <ALLLEDGERENTRIES.LIST>\n`;
+                xml += `              <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
+                xml += `              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n`;
+                xml += `              <AMOUNT>-${grandTotal.toFixed(2)}</AMOUNT>\n`;
+                xml += `            </ALLLEDGERENTRIES.LIST>\n`;
+
+                // 2. Output Tax Ledgers (Credit Entries for CGST & SGST)
                 for (let [rate, taxAmt] of Object.entries(taxMap)) {
                     let halfTax = taxAmt / 2;
                     let halfRate = parseFloat(rate) / 2;
@@ -534,7 +543,7 @@
                     xml += `            </ALLLEDGERENTRIES.LIST>\n`;
                 }
 
-                // 2. Inventory Entries (Stock items with Accounting Allocations for Sales ledgers)
+                // 3. Inventory Entries (Stock Items with Accounting Allocations for Sales Ledgers)
                 inv.items.forEach(item => {
                     let itemAmt = item.qty * item.rate;
                     xml += `            <ALLINVENTORYENTRIES.LIST>\n`;
@@ -543,7 +552,7 @@
                     xml += `              <RATE>${item.rate.toFixed(2)}/${item.uom}</RATE>\n`;
                     xml += `              <ACTUALQTY>${item.qty} ${item.uom}</ACTUALQTY>\n`;
                     xml += `              <BILLEDQTY>${item.qty} ${item.uom}</BILLEDQTY>\n`;
-                    xml += `              <AMOUNT>${itemAmt.toFixed(2)}</AMOUNT>\n`;
+                    xml += `              <AMOUNT>-${itemAmt.toFixed(2)}</AMOUNT>\n`;
                     xml += `              <ACCOUNTINGALLOCATIONS.LIST>\n`;
                     xml += `                <LEDGERNAME>SALES B2C @${item.gst}%</LEDGERNAME>\n`;
                     xml += `                <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
