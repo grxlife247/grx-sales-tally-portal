@@ -492,7 +492,7 @@
         }
 
         function generateTallyXML(invList) {
-            let xml = `<ENVELOPE>\n  <HEADER>\n    <TALLYREQUEST>Import Data</TALLYREQUEST>\n  </HEADER>\n  <BODY>\n    <IMPORTDATA>\n      <REQUESTDESC>\n        <REPORTNAME>Vouchers</REPORTNAME>\n      </REQUESTDESC>\n      <REQUESTDATA>\n`;
+            let xml = `<ENVELOPE>\n <HEADER>\n  <TALLYREQUEST>Import Data</TALLYREQUEST>\n </HEADER>\n <BODY>\n  <IMPORTDATA>\n   <REQUESTDESC>\n    <REPORTNAME>Vouchers</REPORTNAME>\n   </REQUESTDESC>\n   <REQUESTDATA>\n`;
 
             invList.forEach(inv => {
                 let subtotal = 0;
@@ -510,62 +510,66 @@
                 let grandTotal = subtotal + totalTax;
                 let tallyDate = inv.date.replace(/-/g, '');
 
-                xml += `        <TALLYMESSAGE xmlns:UDF="TallyUDF">\n`;
-                xml += `          <VOUCHER VCHTYPE="Sales" ACTION="Create">\n`;
-                xml += `            <DATE>${tallyDate}</DATE>\n`;
-                xml += `            <VOUCHERNUMBER>${inv.number}</VOUCHERNUMBER>\n`;
-                xml += `            <PARTYLEDGERNAME>${escapeXml(inv.customer)}</PARTYLEDGERNAME>\n`;
-                xml += `            <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>\n`;
-                xml += `            <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
+                xml += `    <TALLYMESSAGE xmlns:UDF="TallyUDF">\n`;
+                xml += `     <VOUCHER VCHTYPE="Sales B2C" ACTION="Create" OBJVIEW="Invoice Voucher View">\n`;
+                xml += `      <DATE>${tallyDate}</DATE>\n`;
+                xml += `      <VOUCHERTYPENAME>Sales B2C</VOUCHERTYPENAME>\n`;
+                xml += `      <PARTYNAME>${escapeXml(inv.customer)}</PARTYNAME>\n`;
+                xml += `      <PARTYLEDGERNAME>${escapeXml(inv.customer)}</PARTYLEDGERNAME>\n`;
+                xml += `      <VOUCHERNUMBER>${inv.number}</VOUCHERNUMBER>\n`;
+                xml += `      <BASICBUYERNAME>${escapeXml(inv.customer.split(' ')[0])}</BASICBUYERNAME>\n`;
+                xml += `      <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
+                xml += `      <ISINVOICE>Yes</ISINVOICE>\n`;
 
-                // 1. Party Ledger (Positive amount for Item Invoice mode)
-                xml += `            <ALLLEDGERENTRIES.LIST>\n`;
-                xml += `              <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
-                xml += `              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n`;
-                xml += `              <AMOUNT>${grandTotal.toFixed(2)}</AMOUNT>\n`;
-                xml += `            </ALLLEDGERENTRIES.LIST>\n`;
+                // Exact Tally-matched LEDGERENTRIES format for Party
+                xml += `      <LEDGERENTRIES.LIST>\n`;
+                xml += `       <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
+                xml += `       <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n`;
+                xml += `       <ISPARTYLEDGER>Yes</ISPARTYLEDGER>\n`;
+                xml += `       <AMOUNT>-${grandTotal.toFixed(2)}</AMOUNT>\n`;
+                xml += `       <BILLALLOCATIONS.LIST>\n`;
+                xml += `        <NAME>${inv.number}</NAME>\n`;
+                xml += `        <BILLTYPE>New Ref</BILLTYPE>\n`;
+                xml += `        <AMOUNT>-${grandTotal.toFixed(2)}</AMOUNT>\n`;
+                xml += `       </BILLALLOCATIONS.LIST>\n`;
+                xml += `      </LEDGERENTRIES.LIST>\n`;
 
-                // 2. Output Tax Ledgers (Negative amounts for Tally balancing)
+                // Sales Ledger
+                for (let [rate, amt] of Object.entries(taxMap)) {
+                    let taxableAmt = subtotal; 
+                    xml += `      <LEDGERENTRIES.LIST>\n`;
+                    xml += `       <LEDGERNAME>SALES B2C @${rate}%</LEDGERNAME>\n`;
+                    xml += `       <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
+                    xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
+                    xml += `       <AMOUNT>${taxableAmt.toFixed(2)}</AMOUNT>\n`;
+                    xml += `      </LEDGERENTRIES.LIST>\n`;
+                }
+
+                // Tax Ledgers (CGST & SGST)
                 for (let [rate, taxAmt] of Object.entries(taxMap)) {
                     let halfTax = taxAmt / 2;
                     let halfRate = parseFloat(rate) / 2;
 
-                    xml += `            <ALLLEDGERENTRIES.LIST>\n`;
-                    xml += `              <LEDGERNAME>OUTPUT CGST @${halfRate}%</LEDGERNAME>\n`;
-                    xml += `              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
-                    xml += `              <AMOUNT>-${halfTax.toFixed(2)}</AMOUNT>\n`;
-                    xml += `            </ALLLEDGERENTRIES.LIST>\n`;
+                    xml += `      <LEDGERENTRIES.LIST>\n`;
+                    xml += `       <LEDGERNAME>OUTPUT CGST @${halfRate}%</LEDGERNAME>\n`;
+                    xml += `       <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
+                    xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
+                    xml += `       <AMOUNT>${halfTax.toFixed(2)}</AMOUNT>\n`;
+                    xml += `      </LEDGERENTRIES.LIST>\n`;
 
-                    xml += `            <ALLLEDGERENTRIES.LIST>\n`;
-                    xml += `              <LEDGERNAME>OUTPUT SGST @${halfRate}%</LEDGERNAME>\n`;
-                    xml += `              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
-                    xml += `              <AMOUNT>-${halfTax.toFixed(2)}</AMOUNT>\n`;
-                    xml += `            </ALLLEDGERENTRIES.LIST>\n`;
+                    xml += `      <LEDGERENTRIES.LIST>\n`;
+                    xml += `       <LEDGERNAME>OUTPUT SGST @${halfRate}%</LEDGERNAME>\n`;
+                    xml += `       <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
+                    xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
+                    xml += `       <AMOUNT>${halfTax.toFixed(2)}</AMOUNT>\n`;
+                    xml += `      </LEDGERENTRIES.LIST>\n`;
                 }
 
-                // 3. Inventory Entries (Positive amounts with positive Accounting Allocations)
-                inv.items.forEach(item => {
-                    let itemAmt = item.qty * item.rate;
-                    xml += `            <ALLINVENTORYENTRIES.LIST>\n`;
-                    xml += `              <STOCKITEMNAME>${escapeXml(item.name)}</STOCKITEMNAME>\n`;
-                    xml += `              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
-                    xml += `              <RATE>${item.rate.toFixed(2)}/${item.uom}</RATE>\n`;
-                    xml += `              <ACTUALQTY>${item.qty} ${item.uom}</ACTUALQTY>\n`;
-                    xml += `              <BILLEDQTY>${item.qty} ${item.uom}</BILLEDQTY>\n`;
-                    xml += `              <AMOUNT>${itemAmt.toFixed(2)}</AMOUNT>\n`;
-                    xml += `              <ACCOUNTINGALLOCATIONS.LIST>\n`;
-                    xml += `                <LEDGERNAME>SALES B2C @${item.gst}%</LEDGERNAME>\n`;
-                    xml += `                <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
-                    xml += `                <AMOUNT>${itemAmt.toFixed(2)}</AMOUNT>\n`;
-                    xml += `              </ACCOUNTINGALLOCATIONS.LIST>\n`;
-                    xml += `            </ALLINVENTORYENTRIES.LIST>\n`;
-                });
-
-                xml += `          </VOUCHER>\n`;
-                xml += `        </TALLYMESSAGE>\n`;
+                xml += `     </VOUCHER>\n`;
+                xml += `    </TALLYMESSAGE>\n`;
             });
 
-            xml += `      </REQUESTDATA>\n    </IMPORTDATA>\n  </BODY>\n</ENVELOPE>`;
+            xml += `   </REQUESTDATA>\n  </IMPORTDATA>\n </BODY>\n</ENVELOPE>`;
             return xml;
         }
 
