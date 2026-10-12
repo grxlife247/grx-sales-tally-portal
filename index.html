@@ -518,14 +518,14 @@
                 xml += `            <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>\n`;
                 xml += `            <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
 
-                // 1. Party Ledger (Debit Entry - Grand Total)
+                // 1. Party Ledger (Negative amount required for Tally Item Invoice mode balancing)
                 xml += `            <ALLLEDGERENTRIES.LIST>\n`;
                 xml += `              <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
                 xml += `              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n`;
-                xml += `              <AMOUNT>${grandTotal.toFixed(2)}</AMOUNT>\n`;
+                xml += `              <AMOUNT>-${grandTotal.toFixed(2)}</AMOUNT>\n`;
                 xml += `            </ALLLEDGERENTRIES.LIST>\n`;
 
-                // 2. Output Tax Ledgers (Credit Entries)
+                // 2. Output Tax Ledgers
                 for (let [rate, taxAmt] of Object.entries(taxMap)) {
                     xml += `            <ALLLEDGERENTRIES.LIST>\n`;
                     xml += `              <LEDGERNAME>OUTPUT CGST @${parseFloat(rate)/2}%</LEDGERNAME>\n`;
@@ -540,7 +540,7 @@
                     xml += `            </ALLLEDGERENTRIES.LIST>\n`;
                 }
 
-                // 3. Inventory Entries (Stock items with Accounting Allocations for Sales Ledgers)
+                // 3. Inventory Entries with Accounting Allocations
                 inv.items.forEach(item => {
                     let itemAmt = item.qty * item.rate;
                     xml += `            <ALLINVENTORYENTRIES.LIST>\n`;
