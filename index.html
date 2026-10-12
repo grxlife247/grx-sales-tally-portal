@@ -230,7 +230,6 @@
 
     <!-- Application Script -->
     <script>
-        // Your Firebase Realtime Database Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBq59UUQUh7a5eRJD8rrLpT_ukJRfDiats",
             authDomain: "grx-life-retail-nutrition.firebaseapp.com",
@@ -261,7 +260,6 @@
         let invoices = [];
         let currentViewInvoice = null;
 
-        // Initialize App & Listen to Realtime Database Changes
         window.onload = function() {
             document.getElementById('invDate').valueAsDate = new Date();
             fetchInvoicesFromFirebase();
@@ -517,14 +515,17 @@
                 xml += `            <DATE>${tallyDate}</DATE>\n`;
                 xml += `            <VOUCHERNUMBER>${inv.number}</VOUCHERNUMBER>\n`;
                 xml += `            <PARTYLEDGERNAME>${escapeXml(inv.customer)}</PARTYLEDGERNAME>\n`;
+                xml += `            <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>\n`;
                 xml += `            <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
 
+                // Party Ledger (Debit Entry)
                 xml += `            <ALLLEDGERENTRIES.LIST>\n`;
                 xml += `              <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
                 xml += `              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n`;
-                xml += `              <AMOUNT>-${grandTotal.toFixed(2)}</AMOUNT>\n`;
+                xml += `              <AMOUNT>${grandTotal.toFixed(2)}</AMOUNT>\n`;
                 xml += `            </ALLLEDGERENTRIES.LIST>\n`;
 
+                // Sales Slabs Subtotals (Credit Entries)
                 let slabSubtotals = {};
                 inv.items.forEach(item => {
                     let amt = item.qty * item.rate;
@@ -536,10 +537,11 @@
                     xml += `            <ALLLEDGERENTRIES.LIST>\n`;
                     xml += `              <LEDGERNAME>SALES B2C @${rate}%</LEDGERNAME>\n`;
                     xml += `              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
-                    xml += `              <AMOUNT>${amt.toFixed(2)}</AMOUNT>\n`;
+                    xml += `              <AMOUNT>-${amt.toFixed(2)}</AMOUNT>\n`;
                     xml += `            </ALLLEDGERENTRIES.LIST>\n`;
                 }
 
+                // Output Tax Ledgers (Credit Entries)
                 for (let [rate, taxAmt] of Object.entries(taxMap)) {
                     let halfTax = taxAmt / 2;
                     let halfRate = parseFloat(rate) / 2;
@@ -547,16 +549,17 @@
                     xml += `            <ALLLEDGERENTRIES.LIST>\n`;
                     xml += `              <LEDGERNAME>OUTPUT CGST @${halfRate}%</LEDGERNAME>\n`;
                     xml += `              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
-                    xml += `              <AMOUNT>${halfTax.toFixed(2)}</AMOUNT>\n`;
+                    xml += `              <AMOUNT>-${halfTax.toFixed(2)}</AMOUNT>\n`;
                     xml += `            </ALLLEDGERENTRIES.LIST>\n`;
 
                     xml += `            <ALLLEDGERENTRIES.LIST>\n`;
                     xml += `              <LEDGERNAME>OUTPUT SGST @${halfRate}%</LEDGERNAME>\n`;
                     xml += `              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
-                    xml += `              <AMOUNT>${halfTax.toFixed(2)}</AMOUNT>\n`;
+                    xml += `              <AMOUNT>-${halfTax.toFixed(2)}</AMOUNT>\n`;
                     xml += `            </ALLLEDGERENTRIES.LIST>\n`;
                 }
 
+                // Inventory Entries
                 inv.items.forEach(item => {
                     let itemAmt = item.qty * item.rate;
                     xml += `            <ALLINVENTORYENTRIES.LIST>\n`;
@@ -569,7 +572,7 @@
                     xml += `              <ACCOUNTINGALLOCATIONS.LIST>\n`;
                     xml += `                <LEDGERNAME>SALES B2C @${item.gst}%</LEDGERNAME>\n`;
                     xml += `                <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
-                    xml += `                <AMOUNT>${itemAmt.toFixed(2)}</AMOUNT>\n`;
+                    xml += `                <AMOUNT>-${itemAmt.toFixed(2)}</AMOUNT>\n`;
                     xml += `              </ACCOUNTINGALLOCATIONS.LIST>\n`;
                     xml += `            </ALLINVENTORYENTRIES.LIST>\n`;
                 });
