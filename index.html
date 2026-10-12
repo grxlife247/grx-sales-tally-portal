@@ -518,30 +518,14 @@
                 xml += `            <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>\n`;
                 xml += `            <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
 
-                // Party Ledger (Debit Entry)
+                // 1. Party Ledger (Debit Entry - Grand Total)
                 xml += `            <ALLLEDGERENTRIES.LIST>\n`;
                 xml += `              <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
                 xml += `              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n`;
                 xml += `              <AMOUNT>${grandTotal.toFixed(2)}</AMOUNT>\n`;
                 xml += `            </ALLLEDGERENTRIES.LIST>\n`;
 
-                // Sales Slabs Subtotals (Credit Entries)
-                let slabSubtotals = {};
-                inv.items.forEach(item => {
-                    let amt = item.qty * item.rate;
-                    if (!slabSubtotals[item.gst]) slabSubtotals[item.gst] = 0;
-                    slabSubtotals[item.gst] += amt;
-                });
-
-                for (let [rate, amt] of Object.entries(slabSubtotals)) {
-                    xml += `            <ALLLEDGERENTRIES.LIST>\n`;
-                    xml += `              <LEDGERNAME>SALES B2C @${rate}%</LEDGERNAME>\n`;
-                    xml += `              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
-                    xml += `              <AMOUNT>-${amt.toFixed(2)}</AMOUNT>\n`;
-                    xml += `            </ALLLEDGERENTRIES.LIST>\n`;
-                }
-
-                // Output Tax Ledgers (Credit Entries)
+                // 2. Output Tax Ledgers (Credit Entries - CGST & SGST)
                 for (let [rate, taxAmt] of Object.entries(taxMap)) {
                     let halfTax = taxAmt / 2;
                     let halfRate = parseFloat(rate) / 2;
@@ -559,7 +543,7 @@
                     xml += `            </ALLLEDGERENTRIES.LIST>\n`;
                 }
 
-                // Inventory Entries
+                // 3. Inventory Entries (Stock items with Accounting Allocations for Sales Ledgers)
                 inv.items.forEach(item => {
                     let itemAmt = item.qty * item.rate;
                     xml += `            <ALLINVENTORYENTRIES.LIST>\n`;
@@ -568,7 +552,7 @@
                     xml += `              <RATE>${item.rate.toFixed(2)}/${item.uom}</RATE>\n`;
                     xml += `              <ACTUALQTY>${item.qty} ${item.uom}</ACTUALQTY>\n`;
                     xml += `              <BILLEDQTY>${item.qty} ${item.uom}</BILLEDQTY>\n`;
-                    xml += `              <AMOUNT>${itemAmt.toFixed(2)}</AMOUNT>\n`;
+                    xml += `              <AMOUNT>-${itemAmt.toFixed(2)}</AMOUNT>\n`;
                     xml += `              <ACCOUNTINGALLOCATIONS.LIST>\n`;
                     xml += `                <LEDGERNAME>SALES B2C @${item.gst}%</LEDGERNAME>\n`;
                     xml += `                <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
