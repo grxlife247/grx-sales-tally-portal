@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grx Life Retail Nutrition - Sales Invoice & Tally Export</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-indigo-900 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-700 p-2.5 rounded-lg">
+                    <i class="fa-solid fa-capsules text-2xl text-amber-400"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">Grx Life Retail Nutrition Pvt Ltd</h1>
+                    <p class="text-xs text-indigo-200">GSTIN: <span class="font-mono text-amber-300">09AAGCG7157F1ZE</span> | State: Uttar Pradesh</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="openInvoiceModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-medium text-sm transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-plus"></i> New Sales Invoice
+                </button>
+                <button onclick="exportAllTallyXML()" class="bg-amber-500 hover:bg-amber-600 text-indigo-950 px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-file-export"></i> Export All to Tally (XML)
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
+
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Sales Volume</p>
+                    <h3 id="statTotalSales" class="text-2xl font-bold text-slate-900 mt-1">₹0.00</h3>
+                </div>
+                <div class="bg-indigo-50 text-indigo-600 p-3 rounded-xl"><i class="fa-solid fa-indian-rupee-sign text-xl"></i></div>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Invoices</p>
+                    <h3 id="statTotalInvoices" class="text-2xl font-bold text-slate-900 mt-1">0</h3>
+                </div>
+                <div class="bg-blue-50 text-blue-600 p-3 rounded-xl"><i class="fa-solid fa-file-lines text-xl"></i></div>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">GST Collected</p>
+                    <h3 id="statTotalTax" class="text-2xl font-bold text-slate-900 mt-1">₹0.00</h3>
+                </div>
+                <div class="bg-amber-50 text-amber-600 p-3 rounded-xl"><i class="fa-solid fa-percent text-xl"></i></div>
+            </div>
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Unique Customers</p>
+                    <h3 id="statTotalCustomers" class="text-2xl font-bold text-slate-900 mt-1">0</h3>
+                </div>
+                <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl"><i class="fa-solid fa-users text-xl"></i></div>
+            </div>
+        </div>
+
+        <!-- Invoices List Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Recorded Sales Invoices</h2>
+                    <p class="text-xs text-slate-500">Manage your bills and download direct Tally-compatible XML vouchers.</p>
+                </div>
+                <div class="w-full sm:w-auto flex items-center gap-3">
+                    <div class="relative w-full sm:w-64">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fa-solid fa-search"></i></span>
+                        <input type="text" id="searchInput" oninput="renderInvoices()" placeholder="Search invoice or customer..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-600 uppercase text-xs tracking-wider border-b border-slate-200">
+                            <th class="p-4">Invoice No</th>
+                            <th class="p-4">Date</th>
+                            <th class="p-4">Customer Name</th>
+                            <th class="p-4">Tax Rate</th>
+                            <th class="p-4 text-right">Taxable Amount</th>
+                            <th class="p-4 text-right">Total (Inc. GST)</th>
+                            <th class="p-4 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoiceTableBody" class="divide-y divide-slate-100 text-sm">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden text-center py-12">
+                <div class="text-slate-300 text-5xl mb-3"><i class="fa-solid fa-folder-open"></i></div>
+                <p class="text-slate-500 font-medium">No sales invoices recorded yet.</p>
+                <p class="text-xs text-slate-400 mt-1">Click "New Sales Invoice" to start billing your inventory.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: Create / Edit Invoice -->
+    <div id="invoiceModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="p-5 bg-indigo-900 text-white flex justify-between items-center">
+                <h3 id="modalTitle" class="font-bold text-lg"><i class="fa-solid fa-file-invoice-dollar mr-2"></i> Create Sales Invoice</h3>
+                <button onclick="closeInvoiceModal()" class="text-indigo-200 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <form id="invoiceForm" onsubmit="saveInvoice(event)" class="p-6 overflow-y-auto flex-grow space-y-6">
+                <input type="hidden" id="editIndex" value="-1">
+                
+                <!-- General Details -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Invoice Number</label>
+                        <input type="text" id="invNumber" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Invoice Date</label>
+                        <input type="date" id="invDate" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Customer / Party Name</label>
+                        <input type="text" id="invCustomer" placeholder="e.g. Cash / Walk-in Customer" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Line Items Section -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs font-semibold uppercase text-slate-600">Stock Items & Billing</label>
+                        <button type="button" onclick="addItemRow()" class="text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+                            <i class="fa-solid fa-plus"></i> Add Item
+                        </button>
+                    </div>
+                    
+                    <div class="border border-slate-200 rounded-xl overflow-hidden">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-600 uppercase text-xs border-b border-slate-200">
+                                <tr>
+                                    <th class="p-3">Stock Item</th>
+                                    <th class="p-3 w-28">HSN</th>
+                                    <th class="p-3 w-24">Qty (Btl)</th>
+                                    <th class="p-3 w-32">Rate (₹)</th>
+                                    <th class="p-3 w-32 text-right">Amount</th>
+                                    <th class="p-3 w-12 text-center"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsTableBody" class="divide-y divide-slate-100">
+                                <!-- Dynamic Item Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Summary Totals -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row justify-between items-end sm:items-center gap-4">
+                    <div class="text-xs text-slate-500 space-y-1">
+                        <p><span class="font-semibold text-slate-700">Sales Ledgers:</span> Automatically assigned based on item tax slab (<code class="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-mono">SALES B2C @0% / @5% / @12% / @18%</code>)</p>
+                        <p><span class="font-semibold text-slate-700">Tax Ledgers:</span> Maps to <code class="bg-indigo-50 text-indigo-700 px-1 rounded font-mono">OUTPUT CGST / SGST / IGST</code></p>
+                    </div>
+                    <div class="text-right space-y-1">
+                        <p class="text-xs text-slate-500">Taxable Subtotal: <span id="subtotalDisplay" class="font-bold text-slate-800">₹0.00</span></p>
+                        <p class="text-xs text-slate-500">Total Tax: <span id="taxDisplay" class="font-bold text-slate-800">₹0.00</span></p>
+                        <p class="text-base font-bold text-indigo-900">Grand Total: <span id="grandTotalDisplay">₹0.00</span></p>
+                    </div>
+                </div>
+
+                <!-- Form Buttons -->
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                    <button type="button" onclick="closeInvoiceModal()" class="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 font-medium text-sm transition">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-lg bg-indigo-900 hover:bg-indigo-800 text-white font-medium text-sm transition shadow-sm">Save Invoice</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: View Invoice & Tally XML Preview -->
+    <div id="viewModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="p-5 bg-indigo-900 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg"><i class="fa-solid fa-eye mr-2"></i> Invoice Preview & Tally XML</h3>
+                <button onclick="closeViewModal()" class="text-indigo-200 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex-grow space-y-6">
+                <!-- Preview Details -->
+                <div id="invoicePreviewContent" class="space-y-4">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <div>
+                    <h4 class="text-xs font-semibold uppercase text-slate-600 mb-2">Tally XML Export Preview</h4>
+                    <pre id="xmlPreviewBox" class="bg-slate-900 text-emerald-400 p-4 rounded-xl text-xs font-mono overflow-x-auto max-h-60"></pre>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+                <button onclick="closeViewModal()" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg text-sm font-medium">Close</button>
+                <button id="singleXmlDownloadBtn" onclick="downloadSingleXML()" class="bg-amber-500 hover:bg-amber-600 text-indigo-950 px-4 py-2 rounded-lg font-bold text-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-download"></i> Download Tally XML for this Invoice
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            Grx Life Retail Nutrition Pvt Ltd &bull; Tally ERP 9 / Tally Prime XML Invoicing Integration Module
+        </div>
+    </footer>
+
+    <!-- Application Script -->
+    <script>
+        // Master Stock Inventory Provided by User (Default 5% items, can be adjusted or expanded)
+        const stockCatalog = [
+            { name: "Aquecium D3 30 Caps", hsn: "30049099", uom: "Btl", rate: 250, gst: 5 },
+            { name: "Menoquil (30 Caps)", hsn: "30049099", uom: "Btl", rate: 450, gst: 5 },
+            { name: "Nagossein (30 Caps)", hsn: "21069099", uom: "Btl", rate: 350, gst: 5 },
+            { name: "Reguflo (30 Caps)", hsn: "30049099", uom: "Btl", rate: 400, gst: 5 },
+            { name: "Biosorb Fe Cranberry Powder", hsn: "30049099", uom: "Btl", rate: 550, gst: 5 },
+            { name: "Utiremede (30 Caps)", hsn: "30049099", uom: "Btl", rate: 380, gst: 5 },
+            { name: "UbiActiv Q10 Veg (30 Caps)", hsn: "21069099", uom: "Btl", rate: 600, gst: 12 },
+            { name: "UbiActiv QH Plus (30 Caps)", hsn: "21069091", uom: "Btl", rate: 750, gst: 18 }
+        ];
+
+        // Local Storage State
+        let invoices = JSON.parse(localStorage.getItem('grx_sales_invoices')) || [
+            {
+                number: "INV-2026-001",
+                date: "2026-10-12",
+                customer: "Cash / Walk-in Customer",
+                items: [
+                    { name: "Aquecium D3 30 Caps", hsn: "30049099", uom: "Btl", qty: 2, rate: 250, gst: 5 }
+                ]
+            }
+        ];
+
+        let currentViewInvoice = null;
+
+        // Initialize App
+        window.onload = function() {
+            document.getElementById('invDate').valueAsDate = new Date();
+            generateNextInvoiceNo();
+            renderInvoices();
+        };
+
+        function generateNextInvoiceNo() {
+            const nextNo = `INV-2026-${String(invoices.length + 1).padStart(3, '0')}`;
+            document.getElementById('invNumber').value = nextNo;
+        }
+
+        // Modal Controllers
+        function openInvoiceModal(editIdx = -1) {
+            document.getElementById('invoiceModal').classList.remove('hidden');
+            document.getElementById('itemsTableBody').innerHTML = '';
+            
+            if (editIdx > -1) {
+                document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square mr-2"></i> Edit Sales Invoice';
+                document.getElementById('editIndex').value = editIdx;
+                const inv = invoices[editIdx];
+                document.getElementById('invNumber').value = inv.number;
+                document.getElementById('invDate').value = inv.date;
+                document.getElementById('invCustomer').value = inv.customer;
+                
+                inv.items.forEach(item => addItemRow(item));
+            } else {
+                document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-file-invoice-dollar mr-2"></i> Create Sales Invoice';
+                document.getElementById('editIndex').value = -1;
+                generateNextInvoiceNo();
+                document.getElementById('invCustomer').value = 'Cash / Walk-in Customer';
+                addItemRow(); // Default 1 item row
+            }
+            calculateTotals();
+        }
+
+        function closeInvoiceModal() {
+            document.getElementById('invoiceModal').classList.add('hidden');
+        }
+
+        function closeViewModal() {
+            document.getElementById('viewModal').classList.add('hidden');
+        }
+
+        // Dynamic Line Items
+        function addItemRow(data = null) {
+            const tbody = document.getElementById('itemsTableBody');
+            
+            let optionsHTML = stockCatalog.map(s => `<option value="${s.name}" data-gst="${s.gst}" ${data && data.name === s.name ? 'selected' : ''}>${s.name} (${s.gst}% GST - ₹${s.rate})</option>`).join('');
+
+            const tr = document.createElement('tr');
+            tr.className = 'item-row border-b border-slate-100';
+            tr.innerHTML = `
+                <td class="p-3">
+                    <select class="item-select w-full border border-slate-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" onchange="onItemSelect(this)">
+                        ${optionsHTML}
+                    </select>
+                </td>
+                <td class="p-3">
+                    <input type="text" class="item-hsn w-full border border-slate-300 rounded-lg p-2 text-sm bg-slate-50 font-mono text-center" readonly value="${data ? data.hsn : stockCatalog[0].hsn}">
+                </td>
+                <td class="p-3">
+                    <input type="number" min="1" class="item-qty w-full border border-slate-300 rounded-lg p-2 text-sm text-center" value="${data ? data.qty : 1}" oninput="calculateTotals()">
+                </td>
+                <td class="p-3">
+                    <input type="number" step="0.01" class="item-rate w-full border border-slate-300 rounded-lg p-2 text-sm text-right" value="${data ? data.rate : stockCatalog[0].rate}" oninput="calculateTotals()">
+                </td>
+                <td class="p-3 text-right font-semibold item-amount">₹0.00</td>
+                <td class="p-3 text-center">
+                    <button type="button" onclick="this.closest('tr').remove(); calculateTotals();" class="text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash-can"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            calculateTotals();
+        }
+
+        function onItemSelect(selectElem) {
+            const tr = selectElem.closest('tr');
+            const selectedOption = selectElem.options[selectElem.selectedIndex];
+            const selectedItem = stockCatalog.find(s => s.name === selectElem.value);
+            if (selectedItem) {
+                tr.querySelector('.item-hsn').value = selectedItem.hsn;
+                tr.querySelector('.item-rate').value = selectedItem.rate;
+                calculateTotals();
+            }
+        }
+
+        function calculateTotals() {
+            let subtotal = 0;
+            let totalTax = 0;
+
+            document.querySelectorAll('.item-row').forEach(tr => {
+                const select = tr.querySelector('.item-select');
+                const selectedItem = stockCatalog.find(s => s.name === select.value);
+                const gstRate = selectedItem ? selectedItem.gst : 5;
+
+                const qty = parseFloat(tr.querySelector('.item-qty').value) || 0;
+                const rate = parseFloat(tr.querySelector('.item-rate').value) || 0;
+                const amt = qty * rate;
+                
+                tr.querySelector('.item-amount').innerText = `₹${amt.toFixed(2)}`;
+                subtotal += amt;
+                totalTax += amt * (gstRate / 100);
+            });
+
+            const grandTotal = subtotal + totalTax;
+
+            document.getElementById('subtotalDisplay').innerText = `₹${subtotal.toFixed(2)}`;
+            document.getElementById('taxDisplay').innerText = `₹${totalTax.toFixed(2)}`;
+            document.getElementById('grandTotalDisplay').innerText = `₹${grandTotal.toFixed(2)}`;
+        }
+
+        // Save Invoice Handler
+        function saveInvoice(e) {
+            e.preventDefault();
+            const editIdx = parseInt(document.getElementById('editIndex').value);
+            
+            const items = [];
+            document.querySelectorAll('.item-row').forEach(tr => {
+                const select = tr.querySelector('.item-select');
+                const selectedItem = stockCatalog.find(s => s.name === select.value);
+                items.push({
+                    name: select.value,
+                    hsn: tr.querySelector('.item-hsn').value,
+                    uom: selectedItem ? selectedItem.uom : 'Btl',
+                    qty: parseFloat(tr.querySelector('.item-qty').value),
+                    rate: parseFloat(tr.querySelector('.item-rate').value),
+                    gst: selectedItem ? selectedItem.gst : 5
+                });
+            });
+
+            if (items.length === 0) {
+                alert('Please add at least one stock item.');
+                return;
+            }
+
+            const invoiceData = {
+                number: document.getElementById('invNumber').value,
+                date: document.getElementById('invDate').value,
+                customer: document.getElementById('invCustomer').value,
+                items: items
+            };
+
+            if (editIdx > -1) {
+                invoices[editIdx] = invoiceData;
+            } else {
+                invoices.unshift(invoiceData);
+            }
+
+            localStorage.setItem('grx_sales_invoices', JSON.stringify(invoices));
+            closeInvoiceModal();
+            renderInvoices();
+        }
+
+        // Render Invoices Table
+        function renderInvoices() {
+            const tbody = document.getElementById('invoiceTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            
+            tbody.innerHTML = '';
+            const filtered = invoices.filter(inv => inv.number.toLowerCase().includes(query) || inv.customer.toLowerCase().includes(query));
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                updateStats();
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            filtered.forEach((inv, idx) => {
+                let subtotal = inv.items.reduce((acc, item) => acc + (item.qty * item.rate), 0);
+                let tax = inv.items.reduce((acc, item) => acc + ((item.qty * item.rate) * (item.gst / 100)), 0);
+                let total = subtotal + tax;
+                let primaryGst = inv.items.length > 0 ? inv.items[0].gst : 5;
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+                tr.innerHTML = `
+                    <td class="p-4 font-mono font-bold text-indigo-900">${inv.number}</td>
+                    <td class="p-4 text-slate-600">${inv.date}</td>
+                    <td class="p-4 font-medium text-slate-800">${inv.customer}</td>
+                    <td class="p-4"><span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-semibold">SALES B2C @${primaryGst}%</span></td>
+                    <td class="p-4 text-right text-slate-600">₹${subtotal.toFixed(2)}</td>
+                    <td class="p-4 text-right font-bold text-slate-900">₹${total.toFixed(2)}</td>
+                    <td class="p-4 text-center">
+                        <div class="flex justify-center items-center gap-2">
+                            <button onclick="viewInvoice(${invoices.indexOf(inv)})" title="View & XML" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 p-2 rounded-lg"><i class="fa-solid fa-eye"></i></button>
+                            <button onclick="openInvoiceModal(${invoices.indexOf(inv)})" title="Edit" class="text-amber-600 hover:text-amber-900 bg-amber-50 p-2 rounded-lg"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteInvoice(${invoices.indexOf(inv)})" title="Delete" class="text-rose-600 hover:text-rose-900 bg-rose-50 p-2 rounded-lg"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updateStats();
+        }
+
+        function updateStats() {
+            let totalSales = 0;
+            let totalTax = 0;
+            let customers = new Set();
+
+            invoices.forEach(inv => {
+                let sub = inv.items.reduce((acc, i) => acc + (i.qty * i.rate), 0);
+                let tax = inv.items.reduce((acc, i) => acc + ((i.qty * i.rate) * (i.gst / 100)), 0);
+                totalSales += sub;
+                totalTax += tax;
+                customers.add(inv.customer);
+            });
+
+            document.getElementById('statTotalSales').innerText = `₹${totalSales.toFixed(2)}`;
+            document.getElementById('statTotalInvoices').innerText = invoices.length;
+            document.getElementById('statTotalTax').innerText = `₹${totalTax.toFixed(2)}`;
+            document.getElementById('statTotalCustomers').innerText = customers.size;
+        }
+
+        function deleteInvoice(idx) {
+            if (confirm('Are you sure you want to delete this invoice?')) {
+                invoices.splice(idx, 1);
+                localStorage.setItem('grx_sales_invoices', JSON.stringify(invoices));
+                renderInvoices();
+            }
+        }
+
+        // Tally XML Generator Engine with OUTPUT CGST / SGST / IGST mapping
+        function generateTallyXML(invList) {
+            let xml = `<ENVELOPE>\n  <HEADER>\n    <TALLYREQUEST>Import Data</TALLYREQUEST>\n  </HEADER>\n  <BODY>\n    <IMPORTDATA>\n      <REQUESTDESC>\n        <REPORTNAME>Vouchers</REPORTNAME>\n      </REQUESTDESC>\n      <REQUESTDATA>\n`;
+
+            invList.forEach(inv => {
+                let subtotal = 0;
+                let taxMap = {}; // Group tax by rate slab
+
+                inv.items.forEach(item => {
+                    let amt = item.qty * item.rate;
+                    subtotal += amt;
+                    let rate = item.gst;
+                    if (!taxMap[rate]) taxMap[rate] = 0;
+                    taxMap[rate] += amt * (rate / 100);
+                });
+
+                let totalTax = Object.values(taxMap).reduce((a, b) => a + b, 0);
+                let grandTotal = subtotal + totalTax;
+                let tallyDate = inv.date.replace(/-/g, '');
+
+                xml += `        <TALLYMESSAGE xmlns:UDF="TallyUDF">\n`;
+                xml += `          <VOUCHER VCHTYPE="Sales" ACTION="Create">\n`;
+                xml += `            <DATE>${tallyDate}</DATE>\n`;
+                xml += `            <VOUCHERNUMBER>${inv.number}</VOUCHERNUMBER>\n`;
+                xml += `            <PARTYLEDGERNAME>${escapeXml(inv.customer)}</PARTYLEDGERNAME>\n`;
+                xml += `            <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
+
+                // Total Invoice Amount (Debit)
+                xml += `            <ALLLEDGERENTRIES.LIST>\n`;
+                xml += `              <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
+                xml += `              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n`;
+                xml += `              <AMOUNT>-${grandTotal.toFixed(2)}</AMOUNT>\n`;
+                xml += `            </ALLLEDGERENTRIES.LIST>\n`;
+
+                // Sales Ledger Allocations grouped by GST slab (Credit)
+                let slabSubtotals = {};
+                inv.items.forEach(item => {
+                    let amt = item.qty * item.rate;
+                    if (!slabSubtotals[item.gst]) slabSubtotals[item.gst] = 0;
+                    slabSubtotals[item.gst] += amt;
+                });
+
+                for (let [rate, amt] of Object.entries(slabSubtotals)) {
+                    xml += `            <ALLLEDGERENTRIES.LIST>\n`;
+                    xml += `              <LEDGERNAME>SALES B2C @${rate}%</LEDGERNAME>\n`;
+                    xml += `              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
+                    xml += `              <AMOUNT>${amt.toFixed(2)}</AMOUNT>\n`;
+                    xml += `            </ALLLEDGERENTRIES.LIST>\n`;
+                }
+
+                // Tax Ledgers: OUTPUT CGST @2.5% / OUTPUT SGST @2.5% or OUTPUT IGST @5% etc.
+                // Assuming local B2C in Uttar Pradesh (splitting equally into CGST & SGST)
+                for (let [rate, taxAmt] of Object.entries(taxMap)) {
+                    let halfTax = taxAmt / 2;
+                    let halfRate = parseFloat(rate) / 2;
+
+                    xml += `            <ALLLEDGERENTRIES.LIST>\n`;
+                    xml += `              <LEDGERNAME>OUTPUT CGST @${halfRate}%</LEDGERNAME>\n`;
+                    xml += `              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
+                    xml += `              <AMOUNT>${halfTax.toFixed(2)}</AMOUNT>\n`;
+                    xml += `            </ALLLEDGERENTRIES.LIST>\n`;
+
+                    xml += `            <ALLLEDGERENTRIES.LIST>\n`;
+                    xml += `              <LEDGERNAME>OUTPUT SGST @${halfRate}%</LEDGERNAME>\n`;
+                    xml += `              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
+                    xml += `              <AMOUNT>${halfTax.toFixed(2)}</AMOUNT>\n`;
+                    xml += `            </ALLLEDGERENTRIES.LIST>\n`;
+                }
+
+                // Inventory Items
+                inv.items.forEach(item => {
+                    let itemAmt = item.qty * item.rate;
+                    xml += `            <ALLINVENTORYENTRIES.LIST>\n`;
+                    xml += `              <STOCKITEMNAME>${escapeXml(item.name)}</STOCKITEMNAME>\n`;
+                    xml += `              <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
+                    xml += `              <RATE>${item.rate.toFixed(2)}/${item.uom}</RATE>\n`;
+                    xml += `              <ACTUALQTY>${item.qty} ${item.uom}</ACTUALQTY>\n`;
+                    xml += `              <BILLEDQTY>${item.qty} ${item.uom}</BILLEDQTY>\n`;
+                    xml += `              <AMOUNT>${itemAmt.toFixed(2)}</AMOUNT>\n`;
+                    xml += `              <ACCOUNTINGALLOCATIONS.LIST>\n`;
+                    xml += `                <LEDGERNAME>SALES B2C @${item.gst}%</LEDGERNAME>\n`;
+                    xml += `                <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
+                    xml += `                <AMOUNT>${itemAmt.toFixed(2)}</AMOUNT>\n`;
+                    xml += `              </ACCOUNTINGALLOCATIONS.LIST>\n`;
+                    xml += `            </ALLINVENTORYENTRIES.LIST>\n`;
+                });
+
+                xml += `          </VOUCHER>\n`;
+                xml += `        </TALLYMESSAGE>\n`;
+            });
+
+            xml += `      </REQUESTDATA>\n    </IMPORTDATA>\n  </BODY>\n</ENVELOPE>`;
+            return xml;
+        }
+
+        function escapeXml(str) {
+            return str.replace(/[<>&'"]/g, function (c) {
+                switch (c) {
+                    case '<': return '&lt;';
+                    case '>': return '&gt;';
+                    case '&': return '&amp;';
+                    case '\'': return '&apos;';
+                    case '"': return '&quot;';
+                }
+            });
+        }
+
+        // View Single Invoice Modal
+        function viewInvoice(idx) {
+            currentViewInvoice = invoices[idx];
+            let subtotal = currentViewInvoice.items.reduce((acc, i) => acc + (i.qty * i.rate), 0);
+            let tax = currentViewInvoice.items.reduce((acc, i) => acc + ((i.qty * i.rate) * (i.gst / 100)), 0);
+            let total = subtotal + tax;
+
+            let itemsHtml = currentViewInvoice.items.map(i => `
+                <tr class="border-b border-slate-100">
+                    <td class="py-2">${i.name} (${i.gst}% GST)</td>
+                    <td class="py-2 font-mono text-center">${i.hsn}</td>
+                    <td class="py-2 text-center">${i.qty} ${i.uom}</td>
+                    <td class="py-2 text-right">₹${i.rate.toFixed(2)}</td>
+                    <td class="py-2 text-right font-semibold">₹${(i.qty * i.rate).toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('invoicePreviewContent').innerHTML = `
+                <div class="flex justify-between items-start border-b border-slate-200 pb-4">
+                    <div>
+                        <h4 class="font-bold text-slate-900 text-base">${currentViewInvoice.number}</h4>
+                        <p class="text-xs text-slate-500">Date: ${currentViewInvoice.date}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs font-semibold text-slate-600">Customer:</p>
+                        <p class="text-sm font-bold text-slate-800">${currentViewInvoice.customer}</p>
+                    </div>
+                </div>
+                <table class="w-full text-xs text-left">
+                    <thead>
+                        <tr class="text-slate-400 border-b border-slate-200">
+                            <th class="py-2">Item</th>
+                            <th class="py-2 text-center">HSN</th>
+                            <th class="py-2 text-center">Qty</th>
+                            <th class="py-2 text-right">Rate</th>
+                            <th class="py-2 text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">${itemsHtml}</tbody>
+                </table>
+                <div class="text-right space-y-1 pt-2">
+                    <p class="text-xs text-slate-500">Subtotal: ₹${subtotal.toFixed(2)}</p>
+                    <p class="text-xs text-slate-500">GST Collected: ₹${tax.toFixed(2)}</p>
+                    <p class="text-sm font-bold text-indigo-900">Total: ₹${total.toFixed(2)}</p>
+                </div>
+            `;
+
+            document.getElementById('xmlPreviewBox').innerText = generateTallyXML([currentViewInvoice]);
+            document.getElementById('viewModal').classList.remove('hidden');
+        }
+
+        function downloadSingleXML() {
+            if (!currentViewInvoice) return;
+            const xmlData = generateTallyXML([currentViewInvoice]);
+            downloadFile(xmlData, `Tally_Sales_${currentViewInvoice.number}.xml`);
+        }
+
+            function exportAllTallyXML() {
+            if (invoices.length === 0) {
+                alert('No invoices available to export.');
+                return;
+            }
+            const xmlData = generateTallyXML(invoices);
+            downloadFile(xmlData, `GrxLife_All_Sales_Vouchers_${new Date().toISOString().slice(0,10)}.xml`);
+        }
+
+        function downloadFile(content, filename) {
+            const blob = new Blob([content], { type: 'application/xml;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
