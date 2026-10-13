@@ -223,7 +223,8 @@
                     <div class="text-right space-y-1">
                         <p class="text-xs text-slate-500">Taxable Subtotal: <span id="subtotalDisplay" class="font-bold text-slate-800">₹0.00</span></p>
                         <p class="text-xs text-slate-500">Total Tax: <span id="taxDisplay" class="font-bold text-slate-800">₹0.00</span></p>
-                        <p class="text-base font-bold text-indigo-900">Grand Total: <span id="grandTotalDisplay">₹0.00</span></p>
+                        <p class="text-xs text-amber-600">Round Off: <span id="roundOffDisplay" class="font-bold">₹0.00</span></p>
+                        <p class="text-base font-bold text-indigo-900 mt-1 border-t border-slate-200 pt-1">Grand Total: <span id="grandTotalDisplay">₹0.00</span></p>
                     </div>
                 </div>
 
@@ -421,23 +422,28 @@
                 const qty = parseFloat(tr.querySelector('.item-qty').value) || 0;
                 const rate = parseFloat(tr.querySelector('.item-rate').value) || 0;
                 
-                // Keep exactly 2 decimals for base amount
                 const amt = parseFloat((qty * rate).toFixed(2));
                 
                 tr.querySelector('.item-amount').innerText = `₹${amt.toFixed(2)}`;
                 subtotal += amt;
                 
-                // 1 Paisa Rounding Fix
                 let rawTax = amt * (gstRate / 100);
                 let halfTax = parseFloat((rawTax / 2).toFixed(2));
                 totalTaxRounded += (halfTax * 2);
             });
 
-            // Re-round grandTotal
-            let grandTotal = parseFloat((subtotal + totalTaxRounded).toFixed(2));
+            // Calculate Unrounded Total and Round Off amount
+            let unroundedTotal = subtotal + totalTaxRounded;
+            let grandTotal = Math.round(unroundedTotal);
+            let roundOff = grandTotal - unroundedTotal;
 
             document.getElementById('subtotalDisplay').innerText = `₹${subtotal.toFixed(2)}`;
             document.getElementById('taxDisplay').innerText = `₹${totalTaxRounded.toFixed(2)}`;
+            
+            // Format Round Off Display
+            let roundDisplay = document.getElementById('roundOffDisplay');
+            roundDisplay.innerText = roundOff === 0 ? '₹0.00' : (roundOff > 0 ? `+₹${roundOff.toFixed(2)}` : `-₹${Math.abs(roundOff).toFixed(2)}`);
+            
             document.getElementById('grandTotalDisplay').innerText = `₹${grandTotal.toFixed(2)}`;
         }
 
@@ -509,7 +515,10 @@
                     totalTaxRounded += (halfTax * 2);
                 });
 
-                let total = parseFloat((subtotal + totalTaxRounded).toFixed(2));
+                // Apply Rounding in the Table List as well
+                let unroundedTotal = subtotal + totalTaxRounded;
+                let grandTotal = Math.round(unroundedTotal);
+                
                 let displayMailingName = inv.mailingName ? inv.mailingName : '<span class="text-slate-400 italic">Same as Ledger</span>';
                 let displayState = inv.state || 'Uttar Pradesh';
 
@@ -522,7 +531,7 @@
                     <td class="p-4 text-slate-600">${displayMailingName}</td>
                     <td class="p-4 text-slate-600">${displayState}</td>
                     <td class="p-4 text-right text-slate-600">₹${subtotal.toFixed(2)}</td>
-                    <td class="p-4 text-right font-bold text-slate-900">₹${total.toFixed(2)}</td>
+                    <td class="p-4 text-right font-bold text-slate-900">₹${grandTotal.toFixed(2)}</td>
                     <td class="p-4 text-center">
                         <div class="flex justify-center items-center gap-2">
                             <button onclick="viewInvoice('${inv.id}')" title="View & XML" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 p-2 rounded-lg"><i class="fa-solid fa-eye"></i></button>
@@ -596,7 +605,10 @@
                     totalTaxRounded += (halfTax * 2);
                 }
 
-                let grandTotal = parseFloat((subtotal + totalTaxRounded).toFixed(2));
+                // Apply Rounding Off Logic mathematically
+                let unroundedTotal = subtotal + totalTaxRounded;
+                let grandTotal = Math.round(unroundedTotal);
+                let roundOffAmt = parseFloat((grandTotal - unroundedTotal).toFixed(2));
                 let tallyDate = inv.date.replace(/-/g, '');
 
                 xml += `    <TALLYMESSAGE xmlns:UDF="TallyUDF">\n`;
@@ -641,7 +653,7 @@
                     xml += `      </ALLINVENTORYENTRIES.LIST>\n`;
                 });
 
-                // 2. Party Ledger Entry inside LEDGERENTRIES.LIST
+                // 2. Party Ledger Entry inside LEDGERENTRIES.LIST (using Rounded Grand Total)
                 xml += `      <LEDGERENTRIES.LIST>\n`;
                 xml += `       <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
                 xml += `       <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n`;
@@ -670,6 +682,21 @@
                     xml += `       <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
                     xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
                     xml += `       <AMOUNT>${halfTax.toFixed(2)}</AMOUNT>\n`;
+                    xml += `      </LEDGERENTRIES.LIST>\n`;
+                }
+
+                // 4. Round Off Ledger (Appended ONLY if there is a fractional difference)
+                if (Math.abs(roundOffAmt) > 0.001) {
+                    // In Tally XML, Credit (adding to bill) has ISDEEMEDPOSITIVE = 'No' (positive AMOUNT)
+                    // Debit (subtracting from bill) has ISDEEMEDPOSITIVE = 'Yes' (negative AMOUNT)
+                    let isDeemedPos = roundOffAmt < 0 ? 'Yes' : 'No';
+                    
+                    xml += `      <LEDGERENTRIES.LIST>\n`;
+                    xml += `       <ROUNDTYPE>Normal Rounding</ROUNDTYPE>\n`;
+                    xml += `       <LEDGERNAME>Round Off</LEDGERNAME>\n`;
+                    xml += `       <ISDEEMEDPOSITIVE>${isDeemedPos}</ISDEEMEDPOSITIVE>\n`;
+                    xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
+                    xml += `       <AMOUNT>${roundOffAmt.toFixed(2)}</AMOUNT>\n`;
                     xml += `      </LEDGERENTRIES.LIST>\n`;
                 }
 
@@ -718,7 +745,11 @@
                 `;
             }).join('');
 
-            let total = parseFloat((subtotal + totalTaxRounded).toFixed(2));
+            let unroundedTotal = subtotal + totalTaxRounded;
+            let grandTotal = Math.round(unroundedTotal);
+            let roundOff = grandTotal - unroundedTotal;
+            let roundText = roundOff === 0 ? '₹0.00' : (roundOff > 0 ? `+₹${roundOff.toFixed(2)}` : `-₹${Math.abs(roundOff).toFixed(2)}`);
+
             let displayMailing = currentViewInvoice.mailingName ? currentViewInvoice.mailingName : currentViewInvoice.customer;
             let displayState = currentViewInvoice.state || 'Uttar Pradesh';
 
@@ -750,7 +781,8 @@
                 <div class="text-right space-y-1 pt-2">
                     <p class="text-xs text-slate-500">Subtotal: ₹${subtotal.toFixed(2)}</p>
                     <p class="text-xs text-slate-500">GST Collected: ₹${totalTaxRounded.toFixed(2)}</p>
-                    <p class="text-sm font-bold text-indigo-900">Total: ₹${total.toFixed(2)}</p>
+                    <p class="text-xs text-amber-600">Round Off: ${roundText}</p>
+                    <p class="text-sm font-bold text-indigo-900 mt-1 border-t border-slate-200 pt-1">Grand Total: ₹${grandTotal.toFixed(2)}</p>
                 </div>
             `;
 
