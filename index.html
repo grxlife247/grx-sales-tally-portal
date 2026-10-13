@@ -79,12 +79,20 @@
 
         <!-- Invoices List Card -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="p-5 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
                     <h2 class="text-lg font-bold text-slate-900">Recorded Vouchers (B2C)</h2>
                     <p class="text-xs text-slate-500">Sales Invoices & Credit Notes sync instantly.</p>
                 </div>
-                <div class="w-full sm:w-auto flex items-center gap-3">
+
+                <!-- FILTER TABS -->
+                <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs font-semibold">
+                    <button onclick="setFilter('ALL')" id="filterBtnALL" class="px-4 py-2 rounded-md bg-indigo-900 text-white shadow-sm transition">All Vouchers</button>
+                    <button onclick="setFilter('SALES')" id="filterBtnSALES" class="px-4 py-2 rounded-md text-slate-600 hover:text-indigo-900 transition">Sales Invoices</button>
+                    <button onclick="setFilter('CN')" id="filterBtnCN" class="px-4 py-2 rounded-md text-slate-600 hover:text-indigo-900 transition">Credit Notes</button>
+                </div>
+
+                <div class="w-full md:w-auto flex items-center gap-3">
                     <div class="relative w-full sm:w-64">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400"><i class="fa-solid fa-search"></i></span>
                         <input type="text" id="searchInput" oninput="renderInvoices()" placeholder="Search voucher or customer..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
@@ -116,8 +124,8 @@
             <!-- Empty State -->
             <div id="emptyState" class="hidden text-center py-12">
                 <div class="text-slate-300 text-5xl mb-3"><i class="fa-solid fa-folder-open"></i></div>
-                <p class="text-slate-500 font-medium">No vouchers recorded yet.</p>
-                <p class="text-xs text-slate-400 mt-1">Click "New Voucher" to start billing.</p>
+                <p class="text-slate-500 font-medium">No vouchers found.</p>
+                <p class="text-xs text-slate-400 mt-1">Try changing your filter or search query.</p>
             </div>
         </div>
     </main>
@@ -288,7 +296,7 @@
         </div>
     </div>
 
-    <!-- NEW Modal: Tally XML Range Export -->
+    <!-- Modal: Tally XML Range Export -->
     <div id="xmlExportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
             <div class="p-5 bg-amber-500 text-indigo-950 flex justify-between items-center">
@@ -354,11 +362,28 @@
 
         let invoices = [];
         let currentViewInvoice = null;
+        let currentFilter = 'ALL'; // ALL, SALES, CN
 
         window.onload = function() {
             document.getElementById('invDate').valueAsDate = new Date();
             fetchInvoicesFromFirebase();
         };
+
+        function setFilter(type) {
+            currentFilter = type;
+            
+            // Update UI Button Styles
+            ['ALL', 'SALES', 'CN'].forEach(t => {
+                let btn = document.getElementById('filterBtn' + t);
+                if(t === type) {
+                    btn.className = "px-4 py-2 rounded-md bg-indigo-900 text-white shadow-sm transition";
+                } else {
+                    btn.className = "px-4 py-2 rounded-md text-slate-600 hover:text-indigo-900 transition";
+                }
+            });
+
+            renderInvoices();
+        }
 
         function fetchInvoicesFromFirebase() {
             db.ref('invoices').on('value', (snapshot) => {
@@ -369,7 +394,7 @@
                         invoices.push({ id: key, ...data[key] });
                     });
                     
-                    // Bulletproof DESCENDING SORT ALGORITHM
+                    // Descending Sort Algorithm
                     invoices.sort((a, b) => {
                         const dA = a.date ? new Date(a.date).getTime() : 0;
                         const dB = b.date ? new Date(b.date).getTime() : 0;
@@ -382,7 +407,6 @@
             });
         }
 
-        // SMART AUTO-NUMBERING
         function generateNextInvoiceNo() {
             let selectedType = document.querySelector('input[name="voucherType"]:checked').value;
             let isCN = selectedType.includes('CN');
@@ -413,12 +437,15 @@
             document.getElementById('invoiceModal').classList.remove('hidden');
             document.getElementById('itemsTableBody').innerHTML = '';
             
-            if (editIdx > -1) {
-                const inv = invoices[editIdx];
+            if (editIdx !== -1 && typeof editIdx === 'string' || editIdx > -1) {
+                // If called from table with real index or ID
+                let inv = typeof editIdx === 'string' ? invoices.find(i => i.id === editIdx) : invoices[editIdx];
+                if(!inv) return;
+                
                 let savedVType = inv.voucherType || 'Tata 1mg Sales';
                 
                 document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-pen-to-square mr-2"></i> Edit Voucher`;
-                document.getElementById('editIndex').value = editIdx;
+                document.getElementById('editIndex').value = invoices.indexOf(inv);
                 document.getElementById('editFirebaseKey').value = inv.id;
                 
                 let radioToSelect = document.querySelector(`input[name="voucherType"][value="${savedVType}"]`);
@@ -455,7 +482,6 @@
             document.getElementById('viewModal').classList.add('hidden');
         }
 
-        // TALLY XML RANGE MODAL LOGIC - Bulletproof
         function openXmlModal() {
             if (invoices.length === 0) {
                 alert("No vouchers available to export.");
@@ -500,7 +526,7 @@
                 let toIdx = sortedInvs.findIndex(i => i.id === toId);
                 
                 if (fromIdx === -1 || toIdx === -1) {
-                    alert("Error identifying selected vouchers. Please refresh and try again.");
+                    alert("Error identifying selected vouchers.");
                     return;
                 }
 
@@ -680,11 +706,20 @@
             const query = document.getElementById('searchInput').value.toLowerCase();
             
             tbody.innerHTML = '';
-            const filtered = invoices.filter(inv => 
-                (inv.number && inv.number.toLowerCase().includes(query)) || 
-                (inv.customer && inv.customer.toLowerCase().includes(query)) || 
-                (inv.mailingName && inv.mailingName.toLowerCase().includes(query))
-            );
+            
+            // Filter by Type (ALL, SALES, CN) and Search Query
+            const filtered = invoices.filter(inv => {
+                let vchType = inv.voucherType || 'Tata 1mg Sales';
+                let isCN = vchType.includes('CN');
+
+                if (currentFilter === 'SALES' && isCN) return false;
+                if (currentFilter === 'CN' && !isCN) return false;
+
+                let matchesSearch = (inv.number && inv.number.toLowerCase().includes(query)) || 
+                                    (inv.customer && inv.customer.toLowerCase().includes(query)) || 
+                                    (inv.mailingName && inv.mailingName.toLowerCase().includes(query));
+                return matchesSearch;
+            });
 
             if (filtered.length === 0) {
                 emptyState.classList.remove('hidden');
@@ -693,7 +728,7 @@
             }
             emptyState.classList.add('hidden');
 
-            filtered.forEach((inv, idx) => {
+            filtered.forEach((inv) => {
                 let subtotal = 0;
                 let totalTaxRounded = 0;
                 let isInterstate = (inv.state || 'Uttar Pradesh').trim().toLowerCase() !== 'uttar pradesh';
@@ -719,9 +754,7 @@
                 let unroundedTotal = subtotal + totalTaxRounded;
                 let grandTotal = Math.round(unroundedTotal);
                 
-                let displayMailingName = inv.mailingName ? inv.mailingName : '<span class="text-slate-400 italic">Same as Ledger</span>';
                 let displayState = inv.state || 'Uttar Pradesh';
-                
                 let typeBadgeColor = isCN ? 'rose' : 'indigo';
                 let typeBadge = `<span class="bg-${typeBadgeColor}-100 text-${typeBadgeColor}-800 px-2 py-0.5 rounded text-[10px] font-bold border border-${typeBadgeColor}-200 uppercase">${vchType}</span>`;
                     
@@ -743,7 +776,7 @@
                     <td class="p-4 text-center">
                         <div class="flex justify-center items-center gap-2">
                             <button onclick="viewInvoice('${inv.id}')" title="View & XML" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 p-2 rounded-lg"><i class="fa-solid fa-eye"></i></button>
-                            <button onclick="openInvoiceModal('${invoices.indexOf(inv)}')" title="Edit" class="text-amber-600 hover:text-amber-900 bg-amber-50 p-2 rounded-lg"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="openInvoiceModal('${inv.id}')" title="Edit" class="text-amber-600 hover:text-amber-900 bg-amber-50 p-2 rounded-lg"><i class="fa-solid fa-pen"></i></button>
                             <button onclick="deleteInvoice('${inv.id}')" title="Delete" class="text-rose-600 hover:text-rose-900 bg-rose-50 p-2 rounded-lg"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </td>
@@ -805,7 +838,6 @@
             }
         }
 
-        // Bulletproof XML Escaping
         function escapeXml(str) {
             if (str === null || str === undefined) return '';
             return String(str).replace(/[<>&'"]/g, function (c) {
@@ -873,7 +905,6 @@
                 
                 let partyAmountXML = isCreditNote ? `${grandTotal.toFixed(2)}` : `-${grandTotal.toFixed(2)}`;
                 let itemAmountXML = isCreditNote ? `-${subtotal.toFixed(2)}` : `${subtotal.toFixed(2)}`;
-                
                 let isDiscountXml = hasDiscounts ? 'Yes' : 'No';
 
                 xml += `    <TALLYMESSAGE xmlns:UDF="TallyUDF">\n`;
@@ -1041,7 +1072,6 @@
             let displayMailing = currentViewInvoice.mailingName ? currentViewInvoice.mailingName : currentViewInvoice.customer;
             let displayState = currentViewInvoice.state || 'Uttar Pradesh';
             let taxTypeLabel = isInterstate ? 'IGST' : 'CGST + SGST';
-            
             let colorTheme = isCN ? 'rose' : 'indigo';
 
             document.getElementById('invoicePreviewContent').innerHTML = `
