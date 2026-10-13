@@ -321,7 +321,7 @@
             { name: "Reguflo (30 Caps)", hsn: "30049099", uom: "btl", rate: 3328.57, gst: 5 },
             { name: "Reguflo (60 Caps)", hsn: "30049099", uom: "btl", rate: 6090.48, gst: 5 },
             { name: "UbiActiv Q10 Veg (30 Caps)", hsn: "21069099", uom: "btl", rate: 1900.00, gst: 5 },
-            { name: "UbiActiv QH Plus (30 Caps)", hsn: "21069091", uom: "btl", rate: 3042.86, gst: 5 },
+            { name: "UbiActiv QH (30 Caps)", hsn: "21069099", uom: "btl", rate: 3042.86, gst: 5 },
             { name: "Utiremede (30 Caps)", hsn: "30049099", uom: "btl", rate: 2852.38, gst: 5 },
             { name: "Ubiactiv Max Orange Powder", hsn: "21069099", uom: "Nos", rate: 1706.67, gst: 5 }
         ];
@@ -671,20 +671,7 @@
         }
 
         function generateTallyXML(invList) {
-            let xml = `<ENVELOPE>
- <HEADER>
-  <TALLYREQUEST>Import Data</TALLYREQUEST>
- </HEADER>
- <BODY>
-  <IMPORTDATA>
-   <REQUESTDESC>
-    <REPORTNAME>Vouchers</REPORTNAME>
-    <STATICVARIABLES>
-     <SVCURRENTCOMPANY>GRXLIFE RETAIL AND NUTRITION PRIVATE LIMITED</SVCURRENTCOMPANY>
-    </STATICVARIABLES>
-   </REQUESTDESC>
-   <REQUESTDATA>
-`;
+            let xml = `<ENVELOPE>\n <HEADER>\n  <TALLYREQUEST>Import Data</TALLYREQUEST>\n </HEADER>\n <BODY>\n  <IMPORTDATA>\n   <REQUESTDESC>\n    <REPORTNAME>Vouchers</REPORTNAME>\n    <STATICVARIABLES>\n     <SVCURRENTCOMPANY>GRXLIFE RETAIL AND NUTRITION PRIVATE LIMITED</SVCURRENTCOMPANY>\n    </STATICVARIABLES>\n   </REQUESTDESC>\n   <REQUESTDATA>\n`;
 
             invList.forEach(inv => {
                 let vchTypeName = inv.voucherType || 'Tata 1mg Sales';
@@ -731,154 +718,89 @@
                 let partyAmountXML = isCreditNote ? `${grandTotal.toFixed(2)}` : `-${grandTotal.toFixed(2)}`;
                 let itemAmountXML = isCreditNote ? `-${subtotal.toFixed(2)}` : `${subtotal.toFixed(2)}`;
 
-                xml += `    <TALLYMESSAGE xmlns:UDF="TallyUDF">
-`;
-                xml += `     <VOUCHER VCHTYPE="${vchTypeName}" ACTION="Create" OBJVIEW="Invoice Voucher View">
-`;
-                xml += `      <DATE>${tallyDate}</DATE>
-`;
-                xml += `      <VCHSTATUSDATE>${tallyDate}</VCHSTATUSDATE>
-`;
-                xml += `      <GSTREGISTRATIONTYPE>Unregistered/Consumer</GSTREGISTRATIONTYPE>
-`;
-                xml += `      <STATENAME>${escapeXml(stateName)}</STATENAME>
-`;
-                xml += `      <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
-`;
-                xml += `      <PLACEOFSUPPLY>${escapeXml(stateName)}</PLACEOFSUPPLY>
-`;
-                xml += `      <VOUCHERTYPENAME>${vchTypeName}</VOUCHERTYPENAME>
-`;
-                xml += `      <PARTYNAME>${escapeXml(inv.customer)}</PARTYNAME>
-`;
-                xml += `      <PARTYLEDGERNAME>${escapeXml(inv.customer)}</PARTYLEDGERNAME>
-`;
-                xml += `      <VOUCHERNUMBER>${inv.number}</VOUCHERNUMBER>
-`;
-                xml += `      <BASICBUYERNAME>${escapeXml(inv.customer)}</BASICBUYERNAME>
-`;
-                xml += `      <PARTYMAILINGNAME>${escapeXml(effectiveMailingName)}</PARTYMAILINGNAME>
-`;
-                xml += `      <CONSIGNEEMAILINGNAME>${escapeXml(effectiveMailingName)}</CONSIGNEEMAILINGNAME>
-`;
-                xml += `      <CONSIGNEESTATENAME>${escapeXml(stateName)}</CONSIGNEESTATENAME>
-`;
-                xml += `      <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
-`;
-                xml += `      <VCHENTRYMODE>Item Invoice</VCHENTRYMODE>
-`;
-                xml += `      <ISINVOICE>Yes</ISINVOICE>
-`;
-                xml += `      <HASDISCOUNTS>No</HASDISCOUNTS>
-`;
+                xml += `    <TALLYMESSAGE xmlns:UDF="TallyUDF">\n`;
+                xml += `     <VOUCHER VCHTYPE="${vchTypeName}" ACTION="Create" OBJVIEW="Invoice Voucher View">\n`;
+                xml += `      <DATE>${tallyDate}</DATE>\n`;
+                xml += `      <VCHSTATUSDATE>${tallyDate}</VCHSTATUSDATE>\n`;
+                xml += `      <GSTREGISTRATIONTYPE>Unregistered/Consumer</GSTREGISTRATIONTYPE>\n`;
+                xml += `      <STATENAME>${escapeXml(stateName)}</STATENAME>\n`;
+                xml += `      <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>\n`;
+                xml += `      <PLACEOFSUPPLY>${escapeXml(stateName)}</PLACEOFSUPPLY>\n`;
+                xml += `      <VOUCHERTYPENAME>${vchTypeName}</VOUCHERTYPENAME>\n`;
+                xml += `      <PARTYNAME>${escapeXml(inv.customer)}</PARTYNAME>\n`;
+                xml += `      <PARTYLEDGERNAME>${escapeXml(inv.customer)}</PARTYLEDGERNAME>\n`;
+                xml += `      <VOUCHERNUMBER>${inv.number}</VOUCHERNUMBER>\n`;
+                xml += `      <BASICBUYERNAME>${escapeXml(inv.customer)}</BASICBUYERNAME>\n`;
+                xml += `      <PARTYMAILINGNAME>${escapeXml(effectiveMailingName)}</PARTYMAILINGNAME>\n`;
+                xml += `      <CONSIGNEEMAILINGNAME>${escapeXml(effectiveMailingName)}</CONSIGNEEMAILINGNAME>\n`;
+                xml += `      <CONSIGNEESTATENAME>${escapeXml(stateName)}</CONSIGNEESTATENAME>\n`;
+                xml += `      <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
+                xml += `      <VCHENTRYMODE>Item Invoice</VCHENTRYMODE>\n`;
+                xml += `      <ISINVOICE>Yes</ISINVOICE>\n`;
+                xml += `      <HASDISCOUNTS>No</HASDISCOUNTS>\n`;
 
                 inv.items.forEach(item => {
                     let itemAmt = parseFloat((item.qty * item.rate).toFixed(2));
                     let invAmountXML = isCreditNote ? `-${itemAmt.toFixed(2)}` : `${itemAmt.toFixed(2)}`;
                     
-                    xml += `      <ALLINVENTORYENTRIES.LIST>
-`;
-                    xml += `       <STOCKITEMNAME>${escapeXml(item.name)}</STOCKITEMNAME>
-`;
-                    xml += `       <GSTOVRDNTAXABILITY>Taxable</GSTOVRDNTAXABILITY>
-`;
-                    xml += `       <GSTSOURCETYPE>Stock Item</GSTSOURCETYPE>
-`;
-                    xml += `       <GSTHSNNAME>${item.hsn}</GSTHSNNAME>
-`;
-                    xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>
-`;
-                    xml += `       <RATE>${item.rate.toFixed(2)}/${item.uom}</RATE>
-`;
-                    xml += `       <AMOUNT>${invAmountXML}</AMOUNT>
-`;
-                    xml += `       <ACTUALQTY> ${item.qty}.0 ${item.uom}</ACTUALQTY>
-`;
-                    xml += `       <BILLEDQTY> ${item.qty}.0 ${item.uom}</BILLEDQTY>
-`;
-                    xml += `       <ACCOUNTINGALLOCATIONS.LIST>
-`;
-                    xml += `        <LEDGERNAME>SALES B2C @${item.gst}%</LEDGERNAME>
-`;
-                    xml += `        <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>
-`;
-                    xml += `        <AMOUNT>${invAmountXML}</AMOUNT>
-`;
-                    xml += `       </ACCOUNTINGALLOCATIONS.LIST>
-`;
-                    xml += `      </ALLINVENTORYENTRIES.LIST>
-`;
+                    xml += `      <ALLINVENTORYENTRIES.LIST>\n`;
+                    xml += `       <STOCKITEMNAME>${escapeXml(item.name)}</STOCKITEMNAME>\n`;
+                    xml += `       <GSTOVRDNTAXABILITY>Taxable</GSTOVRDNTAXABILITY>\n`;
+                    xml += `       <GSTSOURCETYPE>Stock Item</GSTSOURCETYPE>\n`;
+                    xml += `       <GSTHSNNAME>${item.hsn}</GSTHSNNAME>\n`;
+                    xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
+                    xml += `       <RATE>${item.rate.toFixed(2)}/${item.uom}</RATE>\n`;
+                    xml += `       <AMOUNT>${invAmountXML}</AMOUNT>\n`;
+                    xml += `       <ACTUALQTY> ${item.qty}.0 ${item.uom}</ACTUALQTY>\n`;
+                    xml += `       <BILLEDQTY> ${item.qty}.0 ${item.uom}</BILLEDQTY>\n`;
+                    xml += `       <ACCOUNTINGALLOCATIONS.LIST>\n`;
+                    xml += `        <LEDGERNAME>SALES B2C @${item.gst}%</LEDGERNAME>\n`;
+                    xml += `        <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
+                    xml += `        <AMOUNT>${invAmountXML}</AMOUNT>\n`;
+                    xml += `       </ACCOUNTINGALLOCATIONS.LIST>\n`;
+                    xml += `      </ALLINVENTORYENTRIES.LIST>\n`;
                 });
 
-                xml += `      <LEDGERENTRIES.LIST>
-`;
-                xml += `       <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>
-`;
-                xml += `       <ISDEEMEDPOSITIVE>${partyIsDeemedPos}</ISDEEMEDPOSITIVE>
-`;
-                xml += `       <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
-`;
-                xml += `       <AMOUNT>${partyAmountXML}</AMOUNT>
-`;
-                xml += `       <BILLALLOCATIONS.LIST>
-`;
-                xml += `        <NAME>${inv.number}</NAME>
-`;
-                xml += `        <BILLTYPE>New Ref</BILLTYPE>
-`;
-                xml += `        <AMOUNT>${partyAmountXML}</AMOUNT>
-`;
-                xml += `       </BILLALLOCATIONS.LIST>
-`;
-                xml += `      </LEDGERENTRIES.LIST>
-`;
+                xml += `      <LEDGERENTRIES.LIST>\n`;
+                xml += `       <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
+                xml += `       <ISDEEMEDPOSITIVE>${partyIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
+                xml += `       <ISPARTYLEDGER>Yes</ISPARTYLEDGER>\n`;
+                xml += `       <AMOUNT>${partyAmountXML}</AMOUNT>\n`;
+                xml += `       <BILLALLOCATIONS.LIST>\n`;
+                xml += `        <NAME>${inv.number}</NAME>\n`;
+                xml += `        <BILLTYPE>New Ref</BILLTYPE>\n`;
+                xml += `        <AMOUNT>${partyAmountXML}</AMOUNT>\n`;
+                xml += `       </BILLALLOCATIONS.LIST>\n`;
+                xml += `      </LEDGERENTRIES.LIST>\n`;
 
                 if (isInterstate) {
                     for (let [rate, fullTax] of Object.entries(processedTaxMap)) {
                         let taxAmtXML = isCreditNote ? `-${fullTax.toFixed(2)}` : `${fullTax.toFixed(2)}`;
-                        xml += `      <LEDGERENTRIES.LIST>
-`;
-                        xml += `       <LEDGERNAME>OUTPUT IGST @${rate}%</LEDGERNAME>
-`;
-                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>
-`;
-                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>
-`;
-                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>
-`;
-                        xml += `      </LEDGERENTRIES.LIST>
-`;
+                        xml += `      <LEDGERENTRIES.LIST>\n`;
+                        xml += `       <LEDGERNAME>OUTPUT IGST @${rate}%</LEDGERNAME>\n`;
+                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
+                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
+                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>\n`;
+                        xml += `      </LEDGERENTRIES.LIST>\n`;
                     }
                 } else {
                     for (let [rate, halfTax] of Object.entries(processedTaxMap)) {
                         let halfRate = parseFloat(rate) / 2;
                         let taxAmtXML = isCreditNote ? `-${halfTax.toFixed(2)}` : `${halfTax.toFixed(2)}`;
 
-                        xml += `      <LEDGERENTRIES.LIST>
-`;
-                        xml += `       <LEDGERNAME>OUTPUT CGST @${halfRate}%</LEDGERNAME>
-`;
-                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>
-`;
-                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>
-`;
-                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>
-`;
-                        xml += `      </LEDGERENTRIES.LIST>
-`;
+                        xml += `      <LEDGERENTRIES.LIST>\n`;
+                        xml += `       <LEDGERNAME>OUTPUT CGST @${halfRate}%</LEDGERNAME>\n`;
+                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
+                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
+                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>\n`;
+                        xml += `      </LEDGERENTRIES.LIST>\n`;
 
-                        xml += `      <LEDGERENTRIES.LIST>
-`;
-                        xml += `       <LEDGERNAME>OUTPUT SGST @${halfRate}%</LEDGERNAME>
-`;
-                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>
-`;
-                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>
-`;
-                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>
-`;
-                        xml += `      </LEDGERENTRIES.LIST>
-`;
+                        xml += `      <LEDGERENTRIES.LIST>\n`;
+                        xml += `       <LEDGERNAME>OUTPUT SGST @${halfRate}%</LEDGERNAME>\n`;
+                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
+                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
+                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>\n`;
+                        xml += `      </LEDGERENTRIES.LIST>\n`;
                     }
                 }
 
@@ -894,32 +816,20 @@
                         finalRoundAmt = roundOffAmt;
                     }
                     
-                    xml += `      <LEDGERENTRIES.LIST>
-`;
-                    xml += `       <ROUNDTYPE>Normal Rounding</ROUNDTYPE>
-`;
-                    xml += `       <LEDGERNAME>Round Off</LEDGERNAME>
-`;
-                    xml += `       <ISDEEMEDPOSITIVE>${isDeemedPos}</ISDEEMEDPOSITIVE>
-`;
-                    xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>
-`;
-                    xml += `       <AMOUNT>${finalRoundAmt.toFixed(2)}</AMOUNT>
-`;
-                    xml += `      </LEDGERENTRIES.LIST>
-`;
+                    xml += `      <LEDGERENTRIES.LIST>\n`;
+                    xml += `       <ROUNDTYPE>Normal Rounding</ROUNDTYPE>\n`;
+                    xml += `       <LEDGERNAME>Round Off</LEDGERNAME>\n`;
+                    xml += `       <ISDEEMEDPOSITIVE>${isDeemedPos}</ISDEEMEDPOSITIVE>\n`;
+                    xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
+                    xml += `       <AMOUNT>${finalRoundAmt.toFixed(2)}</AMOUNT>\n`;
+                    xml += `      </LEDGERENTRIES.LIST>\n`;
                 }
 
-                xml += `     </VOUCHER>
-`;
-                xml += `    </TALLYMESSAGE>
-`;
+                xml += `     </VOUCHER>\n`;
+                xml += `    </TALLYMESSAGE>\n`;
             });
 
-            xml += `   </REQUESTDATA>
-  </IMPORTDATA>
- </BODY>
-</ENVELOPE>`;
+            xml += `   </REQUESTDATA>\n  </IMPORTDATA>\n </BODY>\n</ENVELOPE>`;
             return xml;
         }
 
