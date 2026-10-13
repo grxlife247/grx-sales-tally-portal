@@ -10,6 +10,9 @@
     <!-- Firebase App & Realtime Database SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    
+    <!-- SheetJS for Excel Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
 
@@ -32,8 +35,8 @@
                 <button onclick="exportAllTallyXML()" class="bg-amber-500 hover:bg-amber-600 text-indigo-950 px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-file-export"></i> Tally XML
                 </button>
-                <button onclick="exportGSTR1()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
-                    <i class="fa-solid fa-file-csv"></i> GSTR-1 Report
+                <button onclick="exportGSTR1Excel()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-file-excel"></i> GSTR-1 Excel V2.2
                 </button>
             </div>
         </div>
@@ -78,7 +81,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div>
-                    <h2 class="text-lg font-bold text-slate-900">Recorded Vouchers (Cloud Synced)</h2>
+                    <h2 class="text-lg font-bold text-slate-900">Recorded Vouchers (B2C)</h2>
                     <p class="text-xs text-slate-500">Sales Invoices & Credit Notes sync instantly.</p>
                 </div>
                 <div class="w-full sm:w-auto flex items-center gap-3">
@@ -668,7 +671,20 @@
         }
 
         function generateTallyXML(invList) {
-            let xml = `<ENVELOPE>\n <HEADER>\n  <TALLYREQUEST>Import Data</TALLYREQUEST>\n </HEADER>\n <BODY>\n  <IMPORTDATA>\n   <REQUESTDESC>\n    <REPORTNAME>Vouchers</REPORTNAME>\n    <STATICVARIABLES>\n     <SVCURRENTCOMPANY>GRXLIFE RETAIL AND NUTRITION PRIVATE LIMITED</SVCURRENTCOMPANY>\n    </STATICVARIABLES>\n   </REQUESTDESC>\n   <REQUESTDATA>\n`;
+            let xml = `<ENVELOPE>
+ <HEADER>
+  <TALLYREQUEST>Import Data</TALLYREQUEST>
+ </HEADER>
+ <BODY>
+  <IMPORTDATA>
+   <REQUESTDESC>
+    <REPORTNAME>Vouchers</REPORTNAME>
+    <STATICVARIABLES>
+     <SVCURRENTCOMPANY>GRXLIFE RETAIL AND NUTRITION PRIVATE LIMITED</SVCURRENTCOMPANY>
+    </STATICVARIABLES>
+   </REQUESTDESC>
+   <REQUESTDATA>
+`;
 
             invList.forEach(inv => {
                 let vchTypeName = inv.voucherType || 'Tata 1mg Sales';
@@ -715,89 +731,154 @@
                 let partyAmountXML = isCreditNote ? `${grandTotal.toFixed(2)}` : `-${grandTotal.toFixed(2)}`;
                 let itemAmountXML = isCreditNote ? `-${subtotal.toFixed(2)}` : `${subtotal.toFixed(2)}`;
 
-                xml += `    <TALLYMESSAGE xmlns:UDF="TallyUDF">\n`;
-                xml += `     <VOUCHER VCHTYPE="${vchTypeName}" ACTION="Create" OBJVIEW="Invoice Voucher View">\n`;
-                xml += `      <DATE>${tallyDate}</DATE>\n`;
-                xml += `      <VCHSTATUSDATE>${tallyDate}</VCHSTATUSDATE>\n`;
-                xml += `      <GSTREGISTRATIONTYPE>Unregistered/Consumer</GSTREGISTRATIONTYPE>\n`;
-                xml += `      <STATENAME>${escapeXml(stateName)}</STATENAME>\n`;
-                xml += `      <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>\n`;
-                xml += `      <PLACEOFSUPPLY>${escapeXml(stateName)}</PLACEOFSUPPLY>\n`;
-                xml += `      <VOUCHERTYPENAME>${vchTypeName}</VOUCHERTYPENAME>\n`;
-                xml += `      <PARTYNAME>${escapeXml(inv.customer)}</PARTYNAME>\n`;
-                xml += `      <PARTYLEDGERNAME>${escapeXml(inv.customer)}</PARTYLEDGERNAME>\n`;
-                xml += `      <VOUCHERNUMBER>${inv.number}</VOUCHERNUMBER>\n`;
-                xml += `      <BASICBUYERNAME>${escapeXml(inv.customer)}</BASICBUYERNAME>\n`;
-                xml += `      <PARTYMAILINGNAME>${escapeXml(effectiveMailingName)}</PARTYMAILINGNAME>\n`;
-                xml += `      <CONSIGNEEMAILINGNAME>${escapeXml(effectiveMailingName)}</CONSIGNEEMAILINGNAME>\n`;
-                xml += `      <CONSIGNEESTATENAME>${escapeXml(stateName)}</CONSIGNEESTATENAME>\n`;
-                xml += `      <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
-                xml += `      <VCHENTRYMODE>Item Invoice</VCHENTRYMODE>\n`;
-                xml += `      <ISINVOICE>Yes</ISINVOICE>\n`;
-                xml += `      <HASDISCOUNTS>No</HASDISCOUNTS>\n`;
+                xml += `    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+`;
+                xml += `     <VOUCHER VCHTYPE="${vchTypeName}" ACTION="Create" OBJVIEW="Invoice Voucher View">
+`;
+                xml += `      <DATE>${tallyDate}</DATE>
+`;
+                xml += `      <VCHSTATUSDATE>${tallyDate}</VCHSTATUSDATE>
+`;
+                xml += `      <GSTREGISTRATIONTYPE>Unregistered/Consumer</GSTREGISTRATIONTYPE>
+`;
+                xml += `      <STATENAME>${escapeXml(stateName)}</STATENAME>
+`;
+                xml += `      <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+`;
+                xml += `      <PLACEOFSUPPLY>${escapeXml(stateName)}</PLACEOFSUPPLY>
+`;
+                xml += `      <VOUCHERTYPENAME>${vchTypeName}</VOUCHERTYPENAME>
+`;
+                xml += `      <PARTYNAME>${escapeXml(inv.customer)}</PARTYNAME>
+`;
+                xml += `      <PARTYLEDGERNAME>${escapeXml(inv.customer)}</PARTYLEDGERNAME>
+`;
+                xml += `      <VOUCHERNUMBER>${inv.number}</VOUCHERNUMBER>
+`;
+                xml += `      <BASICBUYERNAME>${escapeXml(inv.customer)}</BASICBUYERNAME>
+`;
+                xml += `      <PARTYMAILINGNAME>${escapeXml(effectiveMailingName)}</PARTYMAILINGNAME>
+`;
+                xml += `      <CONSIGNEEMAILINGNAME>${escapeXml(effectiveMailingName)}</CONSIGNEEMAILINGNAME>
+`;
+                xml += `      <CONSIGNEESTATENAME>${escapeXml(stateName)}</CONSIGNEESTATENAME>
+`;
+                xml += `      <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+`;
+                xml += `      <VCHENTRYMODE>Item Invoice</VCHENTRYMODE>
+`;
+                xml += `      <ISINVOICE>Yes</ISINVOICE>
+`;
+                xml += `      <HASDISCOUNTS>No</HASDISCOUNTS>
+`;
 
                 inv.items.forEach(item => {
                     let itemAmt = parseFloat((item.qty * item.rate).toFixed(2));
                     let invAmountXML = isCreditNote ? `-${itemAmt.toFixed(2)}` : `${itemAmt.toFixed(2)}`;
                     
-                    xml += `      <ALLINVENTORYENTRIES.LIST>\n`;
-                    xml += `       <STOCKITEMNAME>${escapeXml(item.name)}</STOCKITEMNAME>\n`;
-                    xml += `       <GSTOVRDNTAXABILITY>Taxable</GSTOVRDNTAXABILITY>\n`;
-                    xml += `       <GSTSOURCETYPE>Stock Item</GSTSOURCETYPE>\n`;
-                    xml += `       <GSTHSNNAME>${item.hsn}</GSTHSNNAME>\n`;
-                    xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
-                    xml += `       <RATE>${item.rate.toFixed(2)}/${item.uom}</RATE>\n`;
-                    xml += `       <AMOUNT>${invAmountXML}</AMOUNT>\n`;
-                    xml += `       <ACTUALQTY> ${item.qty}.0 ${item.uom}</ACTUALQTY>\n`;
-                    xml += `       <BILLEDQTY> ${item.qty}.0 ${item.uom}</BILLEDQTY>\n`;
-                    xml += `       <ACCOUNTINGALLOCATIONS.LIST>\n`;
-                    xml += `        <LEDGERNAME>SALES B2C @${item.gst}%</LEDGERNAME>\n`;
-                    xml += `        <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
-                    xml += `        <AMOUNT>${invAmountXML}</AMOUNT>\n`;
-                    xml += `       </ACCOUNTINGALLOCATIONS.LIST>\n`;
-                    xml += `      </ALLINVENTORYENTRIES.LIST>\n`;
+                    xml += `      <ALLINVENTORYENTRIES.LIST>
+`;
+                    xml += `       <STOCKITEMNAME>${escapeXml(item.name)}</STOCKITEMNAME>
+`;
+                    xml += `       <GSTOVRDNTAXABILITY>Taxable</GSTOVRDNTAXABILITY>
+`;
+                    xml += `       <GSTSOURCETYPE>Stock Item</GSTSOURCETYPE>
+`;
+                    xml += `       <GSTHSNNAME>${item.hsn}</GSTHSNNAME>
+`;
+                    xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>
+`;
+                    xml += `       <RATE>${item.rate.toFixed(2)}/${item.uom}</RATE>
+`;
+                    xml += `       <AMOUNT>${invAmountXML}</AMOUNT>
+`;
+                    xml += `       <ACTUALQTY> ${item.qty}.0 ${item.uom}</ACTUALQTY>
+`;
+                    xml += `       <BILLEDQTY> ${item.qty}.0 ${item.uom}</BILLEDQTY>
+`;
+                    xml += `       <ACCOUNTINGALLOCATIONS.LIST>
+`;
+                    xml += `        <LEDGERNAME>SALES B2C @${item.gst}%</LEDGERNAME>
+`;
+                    xml += `        <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>
+`;
+                    xml += `        <AMOUNT>${invAmountXML}</AMOUNT>
+`;
+                    xml += `       </ACCOUNTINGALLOCATIONS.LIST>
+`;
+                    xml += `      </ALLINVENTORYENTRIES.LIST>
+`;
                 });
 
-                xml += `      <LEDGERENTRIES.LIST>\n`;
-                xml += `       <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
-                xml += `       <ISDEEMEDPOSITIVE>${partyIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
-                xml += `       <ISPARTYLEDGER>Yes</ISPARTYLEDGER>\n`;
-                xml += `       <AMOUNT>${partyAmountXML}</AMOUNT>\n`;
-                xml += `       <BILLALLOCATIONS.LIST>\n`;
-                xml += `        <NAME>${inv.number}</NAME>\n`;
-                xml += `        <BILLTYPE>New Ref</BILLTYPE>\n`;
-                xml += `        <AMOUNT>${partyAmountXML}</AMOUNT>\n`;
-                xml += `       </BILLALLOCATIONS.LIST>\n`;
-                xml += `      </LEDGERENTRIES.LIST>\n`;
+                xml += `      <LEDGERENTRIES.LIST>
+`;
+                xml += `       <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>
+`;
+                xml += `       <ISDEEMEDPOSITIVE>${partyIsDeemedPos}</ISDEEMEDPOSITIVE>
+`;
+                xml += `       <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+`;
+                xml += `       <AMOUNT>${partyAmountXML}</AMOUNT>
+`;
+                xml += `       <BILLALLOCATIONS.LIST>
+`;
+                xml += `        <NAME>${inv.number}</NAME>
+`;
+                xml += `        <BILLTYPE>New Ref</BILLTYPE>
+`;
+                xml += `        <AMOUNT>${partyAmountXML}</AMOUNT>
+`;
+                xml += `       </BILLALLOCATIONS.LIST>
+`;
+                xml += `      </LEDGERENTRIES.LIST>
+`;
 
                 if (isInterstate) {
                     for (let [rate, fullTax] of Object.entries(processedTaxMap)) {
                         let taxAmtXML = isCreditNote ? `-${fullTax.toFixed(2)}` : `${fullTax.toFixed(2)}`;
-                        xml += `      <LEDGERENTRIES.LIST>\n`;
-                        xml += `       <LEDGERNAME>OUTPUT IGST @${rate}%</LEDGERNAME>\n`;
-                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
-                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
-                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>\n`;
-                        xml += `      </LEDGERENTRIES.LIST>\n`;
+                        xml += `      <LEDGERENTRIES.LIST>
+`;
+                        xml += `       <LEDGERNAME>OUTPUT IGST @${rate}%</LEDGERNAME>
+`;
+                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>
+`;
+                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>
+`;
+                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>
+`;
+                        xml += `      </LEDGERENTRIES.LIST>
+`;
                     }
                 } else {
                     for (let [rate, halfTax] of Object.entries(processedTaxMap)) {
                         let halfRate = parseFloat(rate) / 2;
                         let taxAmtXML = isCreditNote ? `-${halfTax.toFixed(2)}` : `${halfTax.toFixed(2)}`;
 
-                        xml += `      <LEDGERENTRIES.LIST>\n`;
-                        xml += `       <LEDGERNAME>OUTPUT CGST @${halfRate}%</LEDGERNAME>\n`;
-                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
-                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
-                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>\n`;
-                        xml += `      </LEDGERENTRIES.LIST>\n`;
+                        xml += `      <LEDGERENTRIES.LIST>
+`;
+                        xml += `       <LEDGERNAME>OUTPUT CGST @${halfRate}%</LEDGERNAME>
+`;
+                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>
+`;
+                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>
+`;
+                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>
+`;
+                        xml += `      </LEDGERENTRIES.LIST>
+`;
 
-                        xml += `      <LEDGERENTRIES.LIST>\n`;
-                        xml += `       <LEDGERNAME>OUTPUT SGST @${halfRate}%</LEDGERNAME>\n`;
-                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
-                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
-                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>\n`;
-                        xml += `      </LEDGERENTRIES.LIST>\n`;
+                        xml += `      <LEDGERENTRIES.LIST>
+`;
+                        xml += `       <LEDGERNAME>OUTPUT SGST @${halfRate}%</LEDGERNAME>
+`;
+                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>
+`;
+                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>
+`;
+                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>
+`;
+                        xml += `      </LEDGERENTRIES.LIST>
+`;
                     }
                 }
 
@@ -813,156 +894,33 @@
                         finalRoundAmt = roundOffAmt;
                     }
                     
-                    xml += `      <LEDGERENTRIES.LIST>\n`;
-                    xml += `       <ROUNDTYPE>Normal Rounding</ROUNDTYPE>\n`;
-                    xml += `       <LEDGERNAME>Round Off</LEDGERNAME>\n`;
-                    xml += `       <ISDEEMEDPOSITIVE>${isDeemedPos}</ISDEEMEDPOSITIVE>\n`;
-                    xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
-                    xml += `       <AMOUNT>${finalRoundAmt.toFixed(2)}</AMOUNT>\n`;
-                    xml += `      </LEDGERENTRIES.LIST>\n`;
+                    xml += `      <LEDGERENTRIES.LIST>
+`;
+                    xml += `       <ROUNDTYPE>Normal Rounding</ROUNDTYPE>
+`;
+                    xml += `       <LEDGERNAME>Round Off</LEDGERNAME>
+`;
+                    xml += `       <ISDEEMEDPOSITIVE>${isDeemedPos}</ISDEEMEDPOSITIVE>
+`;
+                    xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>
+`;
+                    xml += `       <AMOUNT>${finalRoundAmt.toFixed(2)}</AMOUNT>
+`;
+                    xml += `      </LEDGERENTRIES.LIST>
+`;
                 }
 
-                xml += `     </VOUCHER>\n`;
-                xml += `    </TALLYMESSAGE>\n`;
+                xml += `     </VOUCHER>
+`;
+                xml += `    </TALLYMESSAGE>
+`;
             });
 
-            xml += `   </REQUESTDATA>\n  </IMPORTDATA>\n </BODY>\n</ENVELOPE>`;
+            xml += `   </REQUESTDATA>
+  </IMPORTDATA>
+ </BODY>
+</ENVELOPE>`;
             return xml;
-        }
-
-        // --- NEW GSTR-1 EXPORT LOGIC FOR V2.2 OFFLINE TOOL ---
-        function exportGSTR1() {
-            if (invoices.length === 0) {
-                alert('No data available for GSTR-1 export.');
-                return;
-            }
-
-            const gstStateCodes = {
-                "Jammu & Kashmir": "01-Jammu & Kashmir",
-                "Himachal Pradesh": "02-Himachal Pradesh",
-                "Punjab": "03-Punjab",
-                "Chandigarh": "04-Chandigarh",
-                "Uttarakhand": "05-Uttarakhand",
-                "Haryana": "06-Haryana",
-                "Delhi": "07-Delhi",
-                "Rajasthan": "08-Rajasthan",
-                "Uttar Pradesh": "09-Uttar Pradesh",
-                "Bihar": "10-Bihar",
-                "Sikkim": "11-Sikkim",
-                "Arunachal Pradesh": "12-Arunachal Pradesh",
-                "Nagaland": "13-Nagaland",
-                "Manipur": "14-Manipur",
-                "Mizoram": "15-Mizoram",
-                "Tripura": "16-Tripura",
-                "Meghalaya": "17-Meghalaya",
-                "Assam": "18-Assam",
-                "West Bengal": "19-West Bengal",
-                "Jharkhand": "20-Jharkhand",
-                "Odisha": "21-Odisha",
-                "Chhattisgarh": "22-Chhattisgarh",
-                "Madhya Pradesh": "23-Madhya Pradesh",
-                "Gujarat": "24-Gujarat",
-                "Maharashtra": "27-Maharashtra",
-                "Karnataka": "29-Karnataka",
-                "Goa": "30-Goa",
-                "Kerala": "32-Kerala",
-                "Tamil Nadu": "33-Tamil Nadu",
-                "Puducherry": "34-Puducherry",
-                "Andaman & Nicobar Islands": "35-Andaman & Nicobar Islands",
-                "Telangana": "36-Telangana",
-                "Andhra Pradesh": "37-Andhra Pradesh",
-                "Ladakh": "38-Ladakh"
-            };
-
-            function formatGSTRDate(dateStr) {
-                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                const d = new Date(dateStr);
-                let day = String(d.getDate()).padStart(2, '0');
-                let month = months[d.getMonth()];
-                let year = String(d.getFullYear()).slice(-2);
-                return `${day}-${month}-${year}`; // e.g., 13-Oct-26
-            }
-
-            // GSTR-1 Excel Template V2.2 B2B Column Headers
-            let csv = "GSTIN/UIN of Recipient,Receiver Name,Invoice Number,Invoice date,Invoice Value,Place Of Supply,Reverse Charge,Applicable % of Tax Rate,Invoice Type,E-Commerce GSTIN,Rate,Taxable Value,Cess Amount\n";
-
-            invoices.forEach(inv => {
-                let subtotal = 0;
-                let totalTaxRounded = 0;
-                let isInterstate = (inv.state || 'Uttar Pradesh').trim().toLowerCase() !== 'uttar pradesh';
-                let vchType = inv.voucherType || 'Tata 1mg Sales';
-                let isCN = vchType.includes('CN');
-
-                let rateGroups = {};
-
-                inv.items.forEach(item => {
-                    let amt = parseFloat((item.qty * item.rate).toFixed(2));
-                    subtotal += amt;
-                    let rawTax = amt * (item.gst / 100);
-                    if (isInterstate) {
-                        totalTaxRounded += parseFloat(rawTax.toFixed(2));
-                    } else {
-                        let halfTax = parseFloat((rawTax / 2).toFixed(2));
-                        totalTaxRounded += (halfTax * 2);
-                    }
-
-                    if (!rateGroups[item.gst]) rateGroups[item.gst] = 0;
-                    rateGroups[item.gst] += amt;
-                });
-
-                let unroundedTotal = subtotal + totalTaxRounded;
-                let grandTotal = Math.round(unroundedTotal);
-                
-                // Credit Notes exported as negative values for CA identification
-                let sign = isCN ? -1 : 1;
-
-                let stateName = inv.state || 'Uttar Pradesh';
-                let pos = gstStateCodes[stateName] || stateName;
-                let recName = inv.mailingName ? inv.mailingName : inv.customer;
-
-                // Group by tax rate per GSTR-1 logic
-                Object.keys(rateGroups).forEach(rate => {
-                    let taxableVal = rateGroups[rate];
-                    let row = [
-                        "", // GSTIN/UIN of Recipient (Blank for Unregistered)
-                        `"${recName}"`, // Receiver Name
-                        inv.number, // Invoice Number
-                        formatGSTRDate(inv.date), // Invoice date (DD-MMM-YY)
-                        (grandTotal * sign).toFixed(2), // Invoice Value
-                        `"${pos}"`, // Place Of Supply (State Code-Name)
-                        "N", // Reverse Charge
-                        "", // Applicable % of Tax Rate
-                        "Regular B2B", // Invoice Type
-                        "", // E-Commerce GSTIN
-                        rate, // Rate
-                        (taxableVal * sign).toFixed(2), // Taxable Value
-                        "0.00" // Cess Amount
-                    ];
-                    csv += row.join(",") + "\n";
-                });
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `GSTR1_Report_B2B_${new Date().toISOString().slice(0,10)}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        function escapeXml(str) {
-            return str.replace(/[<>&'"]/g, function (c) {
-                switch (c) {
-                    case '<': return '&lt;';
-                    case '>': return '&gt;';
-                    case '&': return '&amp;';
-                    case '\'': return '&apos;';
-                    case '"': return '&quot;';
-                }
-            });
         }
 
         function viewInvoice(id) {
@@ -1073,6 +1031,130 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
+
+        // --- GSTR-1 MULTI-SHEET EXCEL EXPORT (V2.2 OFFLINE TOOL COMPATIBLE) ---
+        function exportGSTR1Excel() {
+            if (invoices.length === 0) {
+                alert('No data available for GSTR-1 export.');
+                return;
+            }
+
+            const gstStateCodes = {
+                "Jammu & Kashmir": "01-Jammu & Kashmir", "Himachal Pradesh": "02-Himachal Pradesh", "Punjab": "03-Punjab",
+                "Chandigarh": "04-Chandigarh", "Uttarakhand": "05-Uttarakhand", "Haryana": "06-Haryana", "Delhi": "07-Delhi",
+                "Rajasthan": "08-Rajasthan", "Uttar Pradesh": "09-Uttar Pradesh", "Bihar": "10-Bihar", "Sikkim": "11-Sikkim",
+                "Arunachal Pradesh": "12-Arunachal Pradesh", "Nagaland": "13-Nagaland", "Manipur": "14-Manipur",
+                "Mizoram": "15-Mizoram", "Tripura": "16-Tripura", "Meghalaya": "17-Meghalaya", "Assam": "18-Assam",
+                "West Bengal": "19-West Bengal", "Jharkhand": "20-Jharkhand", "Odisha": "21-Odisha", "Chhattisgarh": "22-Chhattisgarh",
+                "Madhya Pradesh": "23-Madhya Pradesh", "Gujarat": "24-Gujarat", "Maharashtra": "27-Maharashtra",
+                "Karnataka": "29-Karnataka", "Goa": "30-Goa", "Kerala": "32-Kerala", "Tamil Nadu": "33-Tamil Nadu",
+                "Puducherry": "34-Puducherry", "Andaman & Nicobar Islands": "35-Andaman & Nicobar Islands",
+                "Telangana": "36-Telangana", "Andhra Pradesh": "37-Andhra Pradesh", "Ladakh": "38-Ladakh"
+            };
+
+            // 1. Process B2CS (B2C Small) - Grouped by POS & Rate
+            let b2csMap = {};
+            let hsnMap = {};
+            
+            let totalSalesCount = 0;
+            let totalCNCount = 0;
+            
+            let minSalesNo = null, maxSalesNo = null;
+            let minCNNo = null, maxCNNo = null;
+
+            invoices.forEach(inv => {
+                let stateName = inv.state || 'Uttar Pradesh';
+                let pos = gstStateCodes[stateName] || stateName;
+                let vchType = inv.voucherType || 'Tata 1mg Sales';
+                let isCN = vchType.includes('CN');
+                let sign = isCN ? -1 : 1;
+
+                // Document Summary Tracking
+                if(isCN) {
+                    totalCNCount++;
+                    if(!minCNNo || inv.number < minCNNo) minCNNo = inv.number;
+                    if(!maxCNNo || inv.number > maxCNNo) maxCNNo = inv.number;
+                } else {
+                    totalSalesCount++;
+                    if(!minSalesNo || inv.number < minSalesNo) minSalesNo = inv.number;
+                    if(!maxSalesNo || inv.number > maxSalesNo) maxSalesNo = inv.number;
+                }
+
+                inv.items.forEach(item => {
+                    let amt = parseFloat((item.qty * item.rate).toFixed(2));
+                    let taxRate = item.gst;
+                    
+                    let isInterstate = stateName.toLowerCase() !== 'uttar pradesh';
+                    let taxAmt = 0;
+                    if(isInterstate){
+                        taxAmt = parseFloat((amt * (taxRate / 100)).toFixed(2));
+                    } else {
+                        let half = parseFloat(((amt * (taxRate / 100)) / 2).toFixed(2));
+                        taxAmt = half * 2;
+                    }
+
+                    // B2CS Aggregation
+                    let b2csKey = `${pos}_${taxRate}`;
+                    if(!b2csMap[b2csKey]) {
+                        b2csMap[b2csKey] = { pos: pos, rate: taxRate, taxable: 0, cess: 0 };
+                    }
+                    b2csMap[b2csKey].taxable += (amt * sign);
+
+                    // HSN Aggregation
+                    let hsnKey = `${item.hsn}_${item.uom}_${taxRate}`;
+                    if(!hsnMap[hsnKey]) {
+                        hsnMap[hsnKey] = { hsn: item.hsn, desc: item.name.substring(0, 30), uqc: item.uom.toUpperCase() === 'NOS' ? 'NOS-NUMBERS' : 'BTL-BOTTLES', qty: 0, taxable: 0, rate: taxRate, igst: 0, cgst: 0, sgst: 0 };
+                    }
+                    
+                    hsnMap[hsnKey].qty += (item.qty * sign);
+                    hsnMap[hsnKey].taxable += (amt * sign);
+                    
+                    if(isInterstate){
+                        hsnMap[hsnKey].igst += (taxAmt * sign);
+                    } else {
+                        hsnMap[hsnKey].cgst += ((taxAmt/2) * sign);
+                        hsnMap[hsnKey].sgst += ((taxAmt/2) * sign);
+                    }
+                });
+            });
+
+            // Prepare Worksheets Data
+            let b2csData = [["Type", "Place Of Supply", "Applicable % of Tax Rate", "Rate", "Taxable Value", "Cess Amount", "E-Commerce GSTIN"]];
+            Object.values(b2csMap).forEach(row => {
+                if(Math.abs(row.taxable) > 0.01) {
+                    b2csData.push(["OE", row.pos, "", row.rate, row.taxable.toFixed(2), "0.00", ""]);
+                }
+            });
+
+            let hsnData = [["HSN", "Description", "UQC", "Total Quantity", "Total Value", "Taxable Value", "Integrated Tax Amount", "Central Tax Amount", "State/UT Tax Amount", "Cess Amount"]];
+            Object.values(hsnMap).forEach(row => {
+                if(Math.abs(row.qty) > 0.01) {
+                    let totalVal = row.taxable + row.igst + row.cgst + row.sgst;
+                    hsnData.push([row.hsn, row.desc, row.uqc, row.qty, totalVal.toFixed(2), row.taxable.toFixed(2), row.igst.toFixed(2), row.cgst.toFixed(2), row.sgst.toFixed(2), "0.00"]);
+                }
+            });
+
+            let docsData = [["Nature of Document", "Sr. No. From", "Sr. No. To", "Total Number", "Cancelled"]];
+            if(totalSalesCount > 0) docsData.push(["Invoices for outward supply", minSalesNo, maxSalesNo, totalSalesCount, 0]);
+            if(totalCNCount > 0) docsData.push(["Credit Notes", minCNNo, maxCNNo, totalCNCount, 0]);
+
+            // Create Workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Add Empty Sheets for strict V2.2 compliance (B2B, CDNR not needed for unregistered)
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["GSTIN/UIN of Recipient","Receiver Name","Invoice Number","Invoice date","Invoice Value","Place Of Supply","Reverse Charge","Applicable % of Tax Rate","Invoice Type","E-Commerce GSTIN","Rate","Taxable Value","Cess Amount"]]), "b2b");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["GSTIN/UIN of Recipient","Receiver Name","Note Number","Note Date","Note Type","Place Of Supply","Reverse Charge","Note Supply Type","Note Value","Applicable % of Tax Rate","Rate","Taxable Value","Cess Amount"]]), "cdnr");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["UR Type","Note Number","Note Date","Note Type","Place Of Supply","Note Value","Applicable % of Tax Rate","Rate","Taxable Value","Cess Amount"]]), "cdnur");
+            
+            // Add Populated Sheets
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(b2csData), "b2cs");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hsnData), "hsn");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(docsData), "docs");
+
+            // Export
+            XLSX.writeFile(wb, `GSTR1_V2.2_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+
     </script>
 </body>
 </html>
