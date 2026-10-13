@@ -511,44 +511,37 @@
                 let tallyDate = inv.date.replace(/-/g, '');
 
                 xml += `    <TALLYMESSAGE xmlns:UDF="TallyUDF">\n`;
-                xml += `     <VOUCHER VCHTYPE="Tata 1mg Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">\n`;
+                xml += `     <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">\n`;
                 xml += `      <DATE>${tallyDate}</DATE>\n`;
                 xml += `      <VCHSTATUSDATE>${tallyDate}</VCHSTATUSDATE>\n`;
-                xml += `      <STATENAME>Uttar Pradesh</STATENAME>\n`;
-                xml += `      <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>\n`;
-                xml += `      <PLACEOFSUPPLY>Uttar Pradesh</PLACEOFSUPPLY>\n`;
-                xml += `      <VOUCHERTYPENAME>Tata 1mg Sales</VOUCHERTYPENAME>\n`;
+                xml += `      <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>\n`;
                 xml += `      <PARTYNAME>${escapeXml(inv.customer)}</PARTYNAME>\n`;
                 xml += `      <PARTYLEDGERNAME>${escapeXml(inv.customer)}</PARTYLEDGERNAME>\n`;
                 xml += `      <VOUCHERNUMBER>${inv.number}</VOUCHERNUMBER>\n`;
-                xml += `      <BASICBUYERNAME>${escapeXml(inv.customer)}</BASICBUYERNAME>\n`;
                 xml += `      <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
                 xml += `      <VCHENTRYMODE>Item Invoice</VCHENTRYMODE>\n`;
                 xml += `      <ISINVOICE>Yes</ISINVOICE>\n`;
-                xml += `      <HASDISCOUNTS>No</HASDISCOUNTS>\n`;
 
-                // 1. Inventory Items inside ALLINVENTORYENTRIES.LIST matching the new sample format
+                // 1. ALLINVENTORYENTRIES.LIST - Stock Items
                 inv.items.forEach(item => {
                     let itemAmt = item.qty * item.rate;
                     xml += `      <ALLINVENTORYENTRIES.LIST>\n`;
                     xml += `       <STOCKITEMNAME>${escapeXml(item.name)}</STOCKITEMNAME>\n`;
-                    xml += `       <GSTOVRDNTAXABILITY>Taxable</GSTOVRDNTAXABILITY>\n`;
-                    xml += `       <GSTSOURCETYPE>Stock Item</GSTSOURCETYPE>\n`;
-                    xml += `       <GSTHSNNAME>${item.hsn}</GSTHSNNAME>\n`;
                     xml += `       <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
                     xml += `       <RATE>${item.rate.toFixed(2)}/${item.uom}</RATE>\n`;
                     xml += `       <AMOUNT>${itemAmt.toFixed(2)}</AMOUNT>\n`;
-                    xml += `       <ACTUALQTY> ${item.qty}.0 ${item.uom}</ACTUALQTY>\n`;
-                    xml += `       <BILLEDQTY> ${item.qty}.0 ${item.uom}</BILLEDQTY>\n`;
+                    xml += `       <ACTUALQTY>${item.qty} ${item.uom}</ACTUALQTY>\n`;
+                    xml += `       <BILLEDQTY>${item.qty} ${item.uom}</BILLEDQTY>\n`;
+                    // Accounting Allocations for the Sales Ledger inside the Stock Item
                     xml += `       <ACCOUNTINGALLOCATIONS.LIST>\n`;
-                    xml += `        <LEDGERNAME>B2B Sales</LEDGERNAME>\n`;
+                    xml += `        <LEDGERNAME>SALES B2C @${item.gst}%</LEDGERNAME>\n`;
                     xml += `        <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
                     xml += `        <AMOUNT>${itemAmt.toFixed(2)}</AMOUNT>\n`;
                     xml += `       </ACCOUNTINGALLOCATIONS.LIST>\n`;
                     xml += `      </ALLINVENTORYENTRIES.LIST>\n`;
                 });
 
-                // 2. Party Ledger Entry inside LEDGERENTRIES.LIST[cite: 13]
+                // 2. LEDGERENTRIES.LIST - Party Ledger (Negative Amount for Tally Import Balancing)
                 xml += `      <LEDGERENTRIES.LIST>\n`;
                 xml += `       <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
                 xml += `       <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n`;
@@ -561,7 +554,7 @@
                 xml += `       </BILLALLOCATIONS.LIST>\n`;
                 xml += `      </LEDGERENTRIES.LIST>\n`;
 
-                // 3. Tax Ledgers (CGST & SGST) matching the new format[cite: 13]
+                // 3. LEDGERENTRIES.LIST - Output Tax Ledgers (CGST & SGST)
                 for (let [rate, taxAmt] of Object.entries(taxMap)) {
                     let halfTax = taxAmt / 2;
                     let halfRate = parseFloat(rate) / 2;
@@ -574,7 +567,7 @@
                     xml += `      </LEDGERENTRIES.LIST>\n`;
 
                     xml += `      <LEDGERENTRIES.LIST>\n`;
-                    xml += `       <LEDGERNAME>SGST@${halfRate}% Ouptut</LEDGERNAME>\n`;
+                    xml += `       <LEDGERNAME>OUTPUT SGST @${halfRate}%</LEDGERNAME>\n`;
                     xml += `       <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
                     xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
                     xml += `       <AMOUNT>${halfTax.toFixed(2)}</AMOUNT>\n`;
@@ -584,7 +577,6 @@
                 xml += `     </VOUCHER>\n`;
                 xml += `    </TALLYMESSAGE>\n`;
             });
-
             xml += `   </REQUESTDATA>\n  </IMPORTDATA>\n </BODY>\n</ENVELOPE>`;
             return xml;
         }
