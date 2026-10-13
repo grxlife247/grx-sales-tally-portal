@@ -362,7 +362,7 @@
 
         let invoices = [];
         let currentViewInvoice = null;
-        let currentFilter = 'ALL'; // ALL, SALES, CN
+        let currentFilter = 'ALL';
 
         window.onload = function() {
             document.getElementById('invDate').valueAsDate = new Date();
@@ -371,8 +371,6 @@
 
         function setFilter(type) {
             currentFilter = type;
-            
-            // Update UI Button Styles
             ['ALL', 'SALES', 'CN'].forEach(t => {
                 let btn = document.getElementById('filterBtn' + t);
                 if(t === type) {
@@ -381,7 +379,6 @@
                     btn.className = "px-4 py-2 rounded-md text-slate-600 hover:text-indigo-900 transition";
                 }
             });
-
             renderInvoices();
         }
 
@@ -394,7 +391,6 @@
                         invoices.push({ id: key, ...data[key] });
                     });
                     
-                    // Descending Sort Algorithm
                     invoices.sort((a, b) => {
                         const dA = a.date ? new Date(a.date).getTime() : 0;
                         const dB = b.date ? new Date(b.date).getTime() : 0;
@@ -438,7 +434,6 @@
             document.getElementById('itemsTableBody').innerHTML = '';
             
             if (editIdx !== -1 && typeof editIdx === 'string' || editIdx > -1) {
-                // If called from table with real index or ID
                 let inv = typeof editIdx === 'string' ? invoices.find(i => i.id === editIdx) : invoices[editIdx];
                 if(!inv) return;
                 
@@ -707,7 +702,6 @@
             
             tbody.innerHTML = '';
             
-            // Filter by Type (ALL, SALES, CN) and Search Query
             const filtered = invoices.filter(inv => {
                 let vchType = inv.voucherType || 'Tata 1mg Sales';
                 let isCN = vchType.includes('CN');
@@ -1142,7 +1136,7 @@
             URL.revokeObjectURL(url);
         }
 
-        // --- GSTR-1 MULTI-SHEET EXCEL EXPORT ---
+        // --- GSTR-1 MULTI-SHEET EXCEL EXPORT (HSN MERGED & NO DESCRIPTION) ---
         function exportGSTR1Excel() {
             if (invoices.length === 0) {
                 alert('No data available for GSTR-1 export.');
@@ -1211,10 +1205,11 @@
                         }
                         b2csMap[b2csKey].taxable += (amt * sign);
 
-                        let hsnVal = item.hsn || '0000';
-                        let hsnKey = `${hsnVal}_${item.uom}_${taxRate}`;
+                        // HSN Aggregation - Keyed strictly by HSN Code to merge duplicates
+                        let hsnVal = String(item.hsn || '0000').trim();
+                        let hsnKey = `${hsnVal}_${taxRate}`;
                         if(!hsnMap[hsnKey]) {
-                            hsnMap[hsnKey] = { hsn: hsnVal, desc: (item.name || '').substring(0, 30), uqc: (item.uom || '').toUpperCase() === 'NOS' ? 'NOS-NUMBERS' : 'BTL-BOTTLES', qty: 0, taxable: 0, rate: taxRate, igst: 0, cgst: 0, sgst: 0 };
+                            hsnMap[hsnKey] = { hsn: hsnVal, desc: "", uqc: (item.uom || '').toUpperCase() === 'NOS' ? 'NOS-NUMBERS' : 'BTL-BOTTLES', qty: 0, taxable: 0, rate: taxRate, igst: 0, cgst: 0, sgst: 0 };
                         }
                         
                         hsnMap[hsnKey].qty += ((item.qty || 0) * sign);
@@ -1236,11 +1231,12 @@
                     }
                 });
 
+                // HSN Sheet Header without Description Name requirement
                 let hsnData = [["HSN", "Description", "UQC", "Total Quantity", "Total Value", "Taxable Value", "Integrated Tax Amount", "Central Tax Amount", "State/UT Tax Amount", "Cess Amount"]];
                 Object.values(hsnMap).forEach(row => {
                     if(Math.abs(row.qty) > 0.01) {
                         let totalVal = row.taxable + row.igst + row.cgst + row.sgst;
-                        hsnData.push([row.hsn, row.desc, row.uqc, row.qty, totalVal.toFixed(2), row.taxable.toFixed(2), row.igst.toFixed(2), row.cgst.toFixed(2), row.sgst.toFixed(2), "0.00"]);
+                        hsnData.push([row.hsn, "", row.uqc, row.qty, totalVal.toFixed(2), row.taxable.toFixed(2), row.igst.toFixed(2), row.cgst.toFixed(2), row.sgst.toFixed(2), "0.00"]);
                     }
                 });
 
