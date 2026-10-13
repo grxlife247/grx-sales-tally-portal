@@ -92,8 +92,8 @@
                         <tr class="bg-slate-50 text-slate-600 uppercase text-xs tracking-wider border-b border-slate-200">
                             <th class="p-4">Invoice No</th>
                             <th class="p-4">Date</th>
-                            <th class="p-4">Customer Name</th>
-                            <th class="p-4">Tax Rate</th>
+                            <th class="p-4">Party Ledger</th>
+                            <th class="p-4">Mailing Name</th>
                             <th class="p-4 text-right">Taxable Amount</th>
                             <th class="p-4 text-right">Total (Inc. GST)</th>
                             <th class="p-4 text-center">Actions</th>
@@ -116,7 +116,7 @@
 
     <!-- Modal: Create / Edit Invoice -->
     <div id="invoiceModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto hidden">
-        <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
             <div class="p-5 bg-indigo-900 text-white flex justify-between items-center">
                 <h3 id="modalTitle" class="font-bold text-lg"><i class="fa-solid fa-file-invoice-dollar mr-2"></i> Create Sales Invoice</h3>
                 <button onclick="closeInvoiceModal()" class="text-indigo-200 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
@@ -126,8 +126,8 @@
                 <input type="hidden" id="editIndex" value="-1">
                 <input type="hidden" id="editFirebaseKey" value="">
                 
-                <!-- General Details -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- General Details (Updated to 4 columns for Mailing Name) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                         <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Invoice Number</label>
                         <input type="text" id="invNumber" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono">
@@ -137,8 +137,12 @@
                         <input type="date" id="invDate" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Customer / Party Name</label>
-                        <input type="text" id="invCustomer" placeholder="e.g. Cash / Walk-in Customer" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Party Ledger Name</label>
+                        <input type="text" id="invCustomer" placeholder="e.g. Tata 1mg Receivable" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Mailing Name (Buyer)</label>
+                        <input type="text" id="invMailingName" placeholder="e.g. Shabnam Khan" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                 </div>
 
@@ -157,7 +161,7 @@
                                 <tr>
                                     <th class="p-3">Stock Item</th>
                                     <th class="p-3 w-28">HSN</th>
-                                    <th class="p-3 w-24">Qty (Btl)</th>
+                                    <th class="p-3 w-24">Qty</th>
                                     <th class="p-3 w-32">Rate (₹)</th>
                                     <th class="p-3 w-32 text-right">Amount</th>
                                     <th class="p-3 w-12 text-center"></th>
@@ -245,16 +249,19 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Master Stock Inventory
+        // Master Stock Inventory with EXACT UOMs & TAXABLE Base Rates
         const stockCatalog = [
-            { name: "Aquecium D3 30 Caps", hsn: "30049099", uom: "Btl", rate: 250, gst: 5 },
-            { name: "Menoquil (30 Caps)", hsn: "30049099", uom: "Btl", rate: 450, gst: 5 },
-            { name: "Nagossein (30 Caps)", hsn: "21069099", uom: "Btl", rate: 350, gst: 5 },
-            { name: "Reguflo (30 Caps)", hsn: "30049099", uom: "Btl", rate: 400, gst: 5 },
-            { name: "Biosorb Fe Cranberry Powder", hsn: "30049099", uom: "Btl", rate: 550, gst: 5 },
-            { name: "Utiremede (30 Caps)", hsn: "30049099", uom: "Btl", rate: 380, gst: 5 },
-            { name: "UbiActiv Q10 Veg (30 Caps)", hsn: "21069099", uom: "Btl", rate: 600, gst: 12 },
-            { name: "UbiActiv QH Plus (30 Caps)", hsn: "21069091", uom: "Btl", rate: 750, gst: 18 }
+            { name: "Biosorb Fe Cranberry Powder", hsn: "30049099", uom: "Nos", rate: 760.00, gst: 5 },
+            { name: "Aquecium (30 Caps)", hsn: "30049099", uom: "btl", rate: 1519.05, gst: 5 },
+            { name: "Aquecium D3 30 Caps", hsn: "30049099", uom: "btl", rate: 947.62, gst: 5 },
+            { name: "Menoquil (30 Caps)", hsn: "30049099", uom: "btl", rate: 3328.57, gst: 5 },
+            { name: "Nagossein (30 Caps)", hsn: "21069099", uom: "btl", rate: 2090.48, gst: 5 },
+            { name: "Reguflo (30 Caps)", hsn: "30049099", uom: "btl", rate: 3328.57, gst: 5 },
+            { name: "Reguflo (60 Caps)", hsn: "30049099", uom: "btl", rate: 6090.48, gst: 5 },
+            { name: "UbiActiv Q10 Veg (30 Caps)", hsn: "21069099", uom: "btl", rate: 1900.00, gst: 5 },
+            { name: "UbiActiv QH Plus (30 Caps)", hsn: "21069091", uom: "btl", rate: 3042.86, gst: 5 },
+            { name: "Utiremede (30 Caps)", hsn: "30049099", uom: "btl", rate: 2852.38, gst: 5 },
+            { name: "Ubiactiv Max Orange Powder", hsn: "21069099", uom: "Nos", rate: 1706.67, gst: 5 }
         ];
 
         let invoices = [];
@@ -297,6 +304,7 @@
                 document.getElementById('invNumber').value = inv.number;
                 document.getElementById('invDate').value = inv.date;
                 document.getElementById('invCustomer').value = inv.customer;
+                document.getElementById('invMailingName').value = inv.mailingName || '';
                 
                 inv.items.forEach(item => addItemRow(item));
             } else {
@@ -304,7 +312,9 @@
                 document.getElementById('editIndex').value = -1;
                 document.getElementById('editFirebaseKey').value = '';
                 generateNextInvoiceNo();
-                document.getElementById('invCustomer').value = 'Cash / Walk-in Customer';
+                // Defaulting to Tata 1mg
+                document.getElementById('invCustomer').value = 'Tata 1mg Receivable';
+                document.getElementById('invMailingName').value = '';
                 addItemRow();
             }
             calculateTotals();
@@ -320,7 +330,7 @@
 
         function addItemRow(data = null) {
             const tbody = document.getElementById('itemsTableBody');
-            let optionsHTML = stockCatalog.map(s => `<option value="${s.name}" data-gst="${s.gst}" ${data && data.name === s.name ? 'selected' : ''}>${s.name} (${s.gst}% GST - ₹${s.rate})</option>`).join('');
+            let optionsHTML = stockCatalog.map(s => `<option value="${s.name}" data-gst="${s.gst}" ${data && data.name === s.name ? 'selected' : ''}>${s.name} (${s.gst}% GST - ₹${s.rate.toFixed(2)})</option>`).join('');
 
             const tr = document.createElement('tr');
             tr.className = 'item-row border-b border-slate-100';
@@ -360,7 +370,7 @@
 
         function calculateTotals() {
             let subtotal = 0;
-            let totalTax = 0;
+            let totalTaxRounded = 0;
 
             document.querySelectorAll('.item-row').forEach(tr => {
                 const select = tr.querySelector('.item-select');
@@ -369,17 +379,24 @@
 
                 const qty = parseFloat(tr.querySelector('.item-qty').value) || 0;
                 const rate = parseFloat(tr.querySelector('.item-rate').value) || 0;
-                const amt = qty * rate;
+                
+                // Keep exactly 2 decimals for base amount
+                const amt = parseFloat((qty * rate).toFixed(2));
                 
                 tr.querySelector('.item-amount').innerText = `₹${amt.toFixed(2)}`;
                 subtotal += amt;
-                totalTax += amt * (gstRate / 100);
+                
+                // 1 Paisa Rounding Fix: Emulating Tally's exact half-tax approach
+                let rawTax = amt * (gstRate / 100);
+                let halfTax = parseFloat((rawTax / 2).toFixed(2));
+                totalTaxRounded += (halfTax * 2);
             });
 
-            const grandTotal = subtotal + totalTax;
+            // Re-round grandTotal to eliminate any floating point 0.01 precision errors
+            let grandTotal = parseFloat((subtotal + totalTaxRounded).toFixed(2));
 
             document.getElementById('subtotalDisplay').innerText = `₹${subtotal.toFixed(2)}`;
-            document.getElementById('taxDisplay').innerText = `₹${totalTax.toFixed(2)}`;
+            document.getElementById('taxDisplay').innerText = `₹${totalTaxRounded.toFixed(2)}`;
             document.getElementById('grandTotalDisplay').innerText = `₹${grandTotal.toFixed(2)}`;
         }
 
@@ -410,6 +427,7 @@
                 number: document.getElementById('invNumber').value,
                 date: document.getElementById('invDate').value,
                 customer: document.getElementById('invCustomer').value,
+                mailingName: document.getElementById('invMailingName').value, // Added Mailing Name
                 items: items
             };
 
@@ -428,7 +446,7 @@
             const query = document.getElementById('searchInput').value.toLowerCase();
             
             tbody.innerHTML = '';
-            const filtered = invoices.filter(inv => inv.number.toLowerCase().includes(query) || inv.customer.toLowerCase().includes(query));
+            const filtered = invoices.filter(inv => inv.number.toLowerCase().includes(query) || inv.customer.toLowerCase().includes(query) || (inv.mailingName && inv.mailingName.toLowerCase().includes(query)));
 
             if (filtered.length === 0) {
                 emptyState.classList.remove('hidden');
@@ -438,10 +456,19 @@
             emptyState.classList.add('hidden');
 
             filtered.forEach((inv, idx) => {
-                let subtotal = inv.items.reduce((acc, item) => acc + (item.qty * item.rate), 0);
-                let tax = inv.items.reduce((acc, item) => acc + ((item.qty * item.rate) * (item.gst / 100)), 0);
-                let total = subtotal + tax;
-                let primaryGst = inv.items.length > 0 ? inv.items[0].gst : 5;
+                let subtotal = 0;
+                let totalTaxRounded = 0;
+                
+                inv.items.forEach(item => {
+                    let amt = parseFloat((item.qty * item.rate).toFixed(2));
+                    subtotal += amt;
+                    let rawTax = amt * (item.gst / 100);
+                    let halfTax = parseFloat((rawTax / 2).toFixed(2));
+                    totalTaxRounded += (halfTax * 2);
+                });
+
+                let total = parseFloat((subtotal + totalTaxRounded).toFixed(2));
+                let displayMailingName = inv.mailingName ? inv.mailingName : '<span class="text-slate-400 italic">Same as Ledger</span>';
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
@@ -449,7 +476,7 @@
                     <td class="p-4 font-mono font-bold text-indigo-900">${inv.number}</td>
                     <td class="p-4 text-slate-600">${inv.date}</td>
                     <td class="p-4 font-medium text-slate-800">${inv.customer}</td>
-                    <td class="p-4"><span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-semibold">SALES B2C @${primaryGst}%</span></td>
+                    <td class="p-4 text-slate-600">${displayMailingName}</td>
                     <td class="p-4 text-right text-slate-600">₹${subtotal.toFixed(2)}</td>
                     <td class="p-4 text-right font-bold text-slate-900">₹${total.toFixed(2)}</td>
                     <td class="p-4 text-center">
@@ -472,8 +499,15 @@
             let customers = new Set();
 
             invoices.forEach(inv => {
-                let sub = inv.items.reduce((acc, i) => acc + (i.qty * i.rate), 0);
-                let tax = inv.items.reduce((acc, i) => acc + ((i.qty * i.rate) * (i.gst / 100)), 0);
+                let sub = 0;
+                let tax = 0;
+                inv.items.forEach(item => {
+                    let amt = parseFloat((item.qty * item.rate).toFixed(2));
+                    sub += amt;
+                    let rawTax = amt * (item.gst / 100);
+                    let halfTax = parseFloat((rawTax / 2).toFixed(2));
+                    tax += (halfTax * 2);
+                });
                 totalSales += sub;
                 totalTax += tax;
                 customers.add(inv.customer);
@@ -498,16 +532,28 @@
                 let subtotal = 0;
                 let taxMap = {};
 
+                // Determine effective mailing name (falls back to ledger name if empty)
+                let effectiveMailingName = inv.mailingName && inv.mailingName.trim() !== '' ? inv.mailingName : inv.customer;
+
+                // Use the exact rounding logic to prevent 1-paisa mismatch in Tally Total
                 inv.items.forEach(item => {
-                    let amt = item.qty * item.rate;
+                    let amt = parseFloat((item.qty * item.rate).toFixed(2));
                     subtotal += amt;
                     let rate = item.gst;
                     if (!taxMap[rate]) taxMap[rate] = 0;
                     taxMap[rate] += amt * (rate / 100);
                 });
 
-                let totalTax = Object.values(taxMap).reduce((a, b) => a + b, 0);
-                let grandTotal = subtotal + totalTax;
+                let totalTaxRounded = 0;
+                let processedTaxMap = {};
+
+                for (let [rate, taxAmt] of Object.entries(taxMap)) {
+                    let halfTax = parseFloat((taxAmt / 2).toFixed(2));
+                    processedTaxMap[rate] = halfTax; // Store half tax for precise output
+                    totalTaxRounded += (halfTax * 2);
+                }
+
+                let grandTotal = parseFloat((subtotal + totalTaxRounded).toFixed(2));
                 let tallyDate = inv.date.replace(/-/g, '');
 
                 xml += `    <TALLYMESSAGE xmlns:UDF="TallyUDF">\n`;
@@ -518,21 +564,26 @@
                 xml += `      <PARTYNAME>${escapeXml(inv.customer)}</PARTYNAME>\n`;
                 xml += `      <PARTYLEDGERNAME>${escapeXml(inv.customer)}</PARTYLEDGERNAME>\n`;
                 xml += `      <VOUCHERNUMBER>${inv.number}</VOUCHERNUMBER>\n`;
+                xml += `      <BASICBUYERNAME>${escapeXml(inv.customer)}</BASICBUYERNAME>\n`;
+                xml += `      <PARTYMAILINGNAME>${escapeXml(effectiveMailingName)}</PARTYMAILINGNAME>\n`;
                 xml += `      <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
                 xml += `      <VCHENTRYMODE>Item Invoice</VCHENTRYMODE>\n`;
                 xml += `      <ISINVOICE>Yes</ISINVOICE>\n`;
+                xml += `      <HASDISCOUNTS>No</HASDISCOUNTS>\n`;
 
-                // 1. ALLINVENTORYENTRIES.LIST - Stock Items
+                // 1. Inventory Items inside ALLINVENTORYENTRIES.LIST
                 inv.items.forEach(item => {
-                    let itemAmt = item.qty * item.rate;
+                    let itemAmt = parseFloat((item.qty * item.rate).toFixed(2));
                     xml += `      <ALLINVENTORYENTRIES.LIST>\n`;
                     xml += `       <STOCKITEMNAME>${escapeXml(item.name)}</STOCKITEMNAME>\n`;
+                    xml += `       <GSTOVRDNTAXABILITY>Taxable</GSTOVRDNTAXABILITY>\n`;
+                    xml += `       <GSTSOURCETYPE>Stock Item</GSTSOURCETYPE>\n`;
+                    xml += `       <GSTHSNNAME>${item.hsn}</GSTHSNNAME>\n`;
                     xml += `       <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
                     xml += `       <RATE>${item.rate.toFixed(2)}/${item.uom}</RATE>\n`;
                     xml += `       <AMOUNT>${itemAmt.toFixed(2)}</AMOUNT>\n`;
-                    xml += `       <ACTUALQTY>${item.qty} ${item.uom}</ACTUALQTY>\n`;
-                    xml += `       <BILLEDQTY>${item.qty} ${item.uom}</BILLEDQTY>\n`;
-                    // Accounting Allocations for the Sales Ledger inside the Stock Item
+                    xml += `       <ACTUALQTY> ${item.qty}.0 ${item.uom}</ACTUALQTY>\n`;
+                    xml += `       <BILLEDQTY> ${item.qty}.0 ${item.uom}</BILLEDQTY>\n`;
                     xml += `       <ACCOUNTINGALLOCATIONS.LIST>\n`;
                     xml += `        <LEDGERNAME>SALES B2C @${item.gst}%</LEDGERNAME>\n`;
                     xml += `        <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
@@ -541,7 +592,7 @@
                     xml += `      </ALLINVENTORYENTRIES.LIST>\n`;
                 });
 
-                // 2. LEDGERENTRIES.LIST - Party Ledger (Negative Amount for Tally Import Balancing)
+                // 2. Party Ledger Entry inside LEDGERENTRIES.LIST
                 xml += `      <LEDGERENTRIES.LIST>\n`;
                 xml += `       <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
                 xml += `       <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>\n`;
@@ -554,9 +605,8 @@
                 xml += `       </BILLALLOCATIONS.LIST>\n`;
                 xml += `      </LEDGERENTRIES.LIST>\n`;
 
-                // 3. LEDGERENTRIES.LIST - Output Tax Ledgers (CGST & SGST)
-                for (let [rate, taxAmt] of Object.entries(taxMap)) {
-                    let halfTax = taxAmt / 2;
+                // 3. Tax Ledgers (CGST & SGST) - Pulled safely from processedTaxMap
+                for (let [rate, halfTax] of Object.entries(processedTaxMap)) {
                     let halfRate = parseFloat(rate) / 2;
 
                     xml += `      <LEDGERENTRIES.LIST>\n`;
@@ -577,6 +627,7 @@
                 xml += `     </VOUCHER>\n`;
                 xml += `    </TALLYMESSAGE>\n`;
             });
+
             xml += `   </REQUESTDATA>\n  </IMPORTDATA>\n </BODY>\n</ENVELOPE>`;
             return xml;
         }
@@ -597,19 +648,29 @@
             currentViewInvoice = invoices.find(i => i.id === id);
             if (!currentViewInvoice) return;
 
-            let subtotal = currentViewInvoice.items.reduce((acc, i) => acc + (i.qty * i.rate), 0);
-            let tax = currentViewInvoice.items.reduce((acc, i) => acc + ((i.qty * i.rate) * (i.gst / 100)), 0);
-            let total = subtotal + tax;
+            let subtotal = 0;
+            let totalTaxRounded = 0;
 
-            let itemsHtml = currentViewInvoice.items.map(i => `
-                <tr class="border-b border-slate-100">
-                    <td class="py-2">${i.name} (${i.gst}% GST)</td>
-                    <td class="py-2 font-mono text-center">${i.hsn}</td>
-                    <td class="py-2 text-center">${i.qty} ${i.uom}</td>
-                    <td class="py-2 text-right">₹${i.rate.toFixed(2)}</td>
-                    <td class="py-2 text-right font-semibold">₹${(i.qty * i.rate).toFixed(2)}</td>
-                </tr>
-            `).join('');
+            let itemsHtml = currentViewInvoice.items.map(i => {
+                let amt = parseFloat((i.qty * i.rate).toFixed(2));
+                subtotal += amt;
+                let rawTax = amt * (i.gst / 100);
+                let halfTax = parseFloat((rawTax / 2).toFixed(2));
+                totalTaxRounded += (halfTax * 2);
+
+                return `
+                    <tr class="border-b border-slate-100">
+                        <td class="py-2">${i.name} (${i.gst}% GST)</td>
+                        <td class="py-2 font-mono text-center">${i.hsn}</td>
+                        <td class="py-2 text-center">${i.qty} ${i.uom}</td>
+                        <td class="py-2 text-right">₹${i.rate.toFixed(2)}</td>
+                        <td class="py-2 text-right font-semibold">₹${amt.toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            let total = parseFloat((subtotal + totalTaxRounded).toFixed(2));
+            let displayMailing = currentViewInvoice.mailingName ? currentViewInvoice.mailingName : currentViewInvoice.customer;
 
             document.getElementById('invoicePreviewContent').innerHTML = `
                 <div class="flex justify-between items-start border-b border-slate-200 pb-4">
@@ -618,8 +679,9 @@
                         <p class="text-xs text-slate-500">Date: ${currentViewInvoice.date}</p>
                     </div>
                     <div class="text-right">
-                        <p class="text-xs font-semibold text-slate-600">Customer:</p>
+                        <p class="text-xs font-semibold text-slate-600">Customer (Ledger):</p>
                         <p class="text-sm font-bold text-slate-800">${currentViewInvoice.customer}</p>
+                        <p class="text-xs text-slate-500 mt-1">Mailing Name: ${displayMailing}</p>
                     </div>
                 </div>
                 <table class="w-full text-xs text-left">
@@ -636,7 +698,7 @@
                 </table>
                 <div class="text-right space-y-1 pt-2">
                     <p class="text-xs text-slate-500">Subtotal: ₹${subtotal.toFixed(2)}</p>
-                    <p class="text-xs text-slate-500">GST Collected: ₹${tax.toFixed(2)}</p>
+                    <p class="text-xs text-slate-500">GST Collected: ₹${totalTaxRounded.toFixed(2)}</p>
                     <p class="text-sm font-bold text-indigo-900">Total: ₹${total.toFixed(2)}</p>
                 </div>
             `;
