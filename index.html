@@ -95,6 +95,7 @@
                             <th class="p-4">Party Ledger</th>
                             <th class="p-4">Mailing Name</th>
                             <th class="p-4">State</th>
+                            <th class="p-4">Tax Type</th>
                             <th class="p-4 text-right">Taxable Amount</th>
                             <th class="p-4 text-right">Total (Inc. GST)</th>
                             <th class="p-4 text-center">Actions</th>
@@ -146,42 +147,42 @@
                         <input type="text" id="invMailingName" placeholder="e.g. Shabnam Khan" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">State</label>
-                        <select id="invState" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                            <option value="Uttar Pradesh">Uttar Pradesh</option>
-                            <option value="Haryana">Haryana</option>
-                            <option value="Delhi">Delhi</option>
-                            <option value="Maharashtra">Maharashtra</option>
-                            <option value="Karnataka">Karnataka</option>
-                            <option value="Gujarat">Gujarat</option>
-                            <option value="Rajasthan">Rajasthan</option>
-                            <option value="Punjab">Punjab</option>
-                            <option value="Madhya Pradesh">Madhya Pradesh</option>
-                            <option value="Bihar">Bihar</option>
-                            <option value="West Bengal">West Bengal</option>
-                            <option value="Tamil Nadu">Tamil Nadu</option>
-                            <option value="Kerala">Kerala</option>
-                            <option value="Telangana">Telangana</option>
-                            <option value="Andhra Pradesh">Andhra Pradesh</option>
-                            <option value="Assam">Assam</option>
-                            <option value="Odisha">Odisha</option>
-                            <option value="Jharkhand">Jharkhand</option>
-                            <option value="Chhattisgarh">Chhattisgarh</option>
-                            <option value="Uttarakhand">Uttarakhand</option>
-                            <option value="Himachal Pradesh">Himachal Pradesh</option>
-                            <option value="Goa">Goa</option>
-                            <option value="Tripura">Tripura</option>
-                            <option value="Meghalaya">Meghalaya</option>
-                            <option value="Manipur">Manipur</option>
-                            <option value="Nagaland">Nagaland</option>
-                            <option value="Arunachal Pradesh">Arunachal Pradesh</option>
-                            <option value="Mizoram">Mizoram</option>
-                            <option value="Sikkim">Sikkim</option>
-                            <option value="Jammu & Kashmir">Jammu & Kashmir</option>
-                            <option value="Ladakh">Ladakh</option>
-                            <option value="Chandigarh">Chandigarh</option>
-                            <option value="Puducherry">Puducherry</option>
-                            <option value="Andaman & Nicobar Islands">Andaman & Nicobar Islands</option>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">State (Supply Destination)</label>
+                        <select id="invState" onchange="calculateTotals()" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="Uttar Pradesh">Uttar Pradesh (Intra-State: CGST+SGST)</option>
+                            <option value="Haryana">Haryana (Inter-State: IGST)</option>
+                            <option value="Delhi">Delhi (Inter-State: IGST)</option>
+                            <option value="Maharashtra">Maharashtra (Inter-State: IGST)</option>
+                            <option value="Karnataka">Karnataka (Inter-State: IGST)</option>
+                            <option value="Gujarat">Gujarat (Inter-State: IGST)</option>
+                            <option value="Rajasthan">Rajasthan (Inter-State: IGST)</option>
+                            <option value="Punjab">Punjab (Inter-State: IGST)</option>
+                            <option value="Madhya Pradesh">Madhya Pradesh (Inter-State: IGST)</option>
+                            <option value="Bihar">Bihar (Inter-State: IGST)</option>
+                            <option value="West Bengal">West Bengal (Inter-State: IGST)</option>
+                            <option value="Tamil Nadu">Tamil Nadu (Inter-State: IGST)</option>
+                            <option value="Kerala">Kerala (Inter-State: IGST)</option>
+                            <option value="Telangana">Telangana (Inter-State: IGST)</option>
+                            <option value="Andhra Pradesh">Andhra Pradesh (Inter-State: IGST)</option>
+                            <option value="Assam">Assam (Inter-State: IGST)</option>
+                            <option value="Odisha">Odisha (Inter-State: IGST)</option>
+                            <option value="Jharkhand">Jharkhand (Inter-State: IGST)</option>
+                            <option value="Chhattisgarh">Chhattisgarh (Inter-State: IGST)</option>
+                            <option value="Uttarakhand">Uttarakhand (Inter-State: IGST)</option>
+                            <option value="Himachal Pradesh">Himachal Pradesh (Inter-State: IGST)</option>
+                            <option value="Goa">Goa (Inter-State: IGST)</option>
+                            <option value="Tripura">Tripura (Inter-State: IGST)</option>
+                            <option value="Meghalaya">Meghalaya (Inter-State: IGST)</option>
+                            <option value="Manipur">Manipur (Inter-State: IGST)</option>
+                            <option value="Nagaland">Nagaland (Inter-State: IGST)</option>
+                            <option value="Arunachal Pradesh">Arunachal Pradesh (Inter-State: IGST)</option>
+                            <option value="Mizoram">Mizoram (Inter-State: IGST)</option>
+                            <option value="Sikkim">Sikkim (Inter-State: IGST)</option>
+                            <option value="Jammu & Kashmir">Jammu & Kashmir (Inter-State: IGST)</option>
+                            <option value="Ladakh">Ladakh (Inter-State: IGST)</option>
+                            <option value="Chandigarh">Chandigarh (Inter-State: IGST)</option>
+                            <option value="Puducherry">Puducherry (Inter-State: IGST)</option>
+                            <option value="Andaman & Nicobar Islands">Andaman & Nicobar Islands (Inter-State: IGST)</option>
                         </select>
                     </div>
                 </div>
@@ -217,12 +218,12 @@
                 <!-- Summary Totals -->
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row justify-between items-end sm:items-center gap-4">
                     <div class="text-xs text-slate-500 space-y-1">
-                        <p><span class="font-semibold text-slate-700">Sales Ledgers:</span> Assigned based on item tax slab (<code class="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-mono">SALES B2C @5% / @12% / @18%</code>)</p>
-                        <p><span class="font-semibold text-slate-700">Tax Ledgers:</span> Maps to <code class="bg-indigo-50 text-indigo-700 px-1 rounded font-mono">OUTPUT CGST / SGST</code></p>
+                        <p><span class="font-semibold text-slate-700">Tax Type:</span> <span id="taxTypeBanner" class="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-medium">Intra-State (CGST + SGST)</span></p>
+                        <p><span class="font-semibold text-slate-700">Tax Ledger Mapping:</span> <code id="taxLedgerDisplayNote" class="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-mono">OUTPUT CGST / SGST</code></p>
                     </div>
                     <div class="text-right space-y-1">
                         <p class="text-xs text-slate-500">Taxable Subtotal: <span id="subtotalDisplay" class="font-bold text-slate-800">₹0.00</span></p>
-                        <p class="text-xs text-slate-500">Total Tax: <span id="taxDisplay" class="font-bold text-slate-800">₹0.00</span></p>
+                        <p class="text-xs text-slate-500"><span id="taxLabelTitle">Total Tax</span>: <span id="taxDisplay" class="font-bold text-slate-800">₹0.00</span></p>
                         <p class="text-xs text-amber-600">Round Off: <span id="roundOffDisplay" class="font-bold">₹0.00</span></p>
                         <p class="text-base font-bold text-indigo-900 mt-1 border-t border-slate-200 pt-1">Grand Total: <span id="grandTotalDisplay">₹0.00</span></p>
                     </div>
@@ -413,6 +414,8 @@
         function calculateTotals() {
             let subtotal = 0;
             let totalTaxRounded = 0;
+            let selectedState = (document.getElementById('invState').value || '').trim();
+            let isInterstate = selectedState.toLowerCase() !== 'uttar pradesh';
 
             document.querySelectorAll('.item-row').forEach(tr => {
                 const select = tr.querySelector('.item-select');
@@ -428,9 +431,33 @@
                 subtotal += amt;
                 
                 let rawTax = amt * (gstRate / 100);
-                let halfTax = parseFloat((rawTax / 2).toFixed(2));
-                totalTaxRounded += (halfTax * 2);
+
+                if (isInterstate) {
+                    // Inter-state: Full IGST
+                    totalTaxRounded += parseFloat(rawTax.toFixed(2));
+                } else {
+                    // Intra-state (UP): Half CGST + Half SGST
+                    let halfTax = parseFloat((rawTax / 2).toFixed(2));
+                    totalTaxRounded += (halfTax * 2);
+                }
             });
+
+            // Update UI Banner & Labels for State
+            const banner = document.getElementById('taxTypeBanner');
+            const note = document.getElementById('taxLedgerDisplayNote');
+            const taxLabelTitle = document.getElementById('taxLabelTitle');
+
+            if (isInterstate) {
+                banner.className = 'bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-medium';
+                banner.innerText = 'Inter-State (IGST)';
+                note.innerText = 'OUTPUT IGST @5% / @12% / @18%';
+                taxLabelTitle.innerText = 'Total Tax (IGST)';
+            } else {
+                banner.className = 'bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-medium';
+                banner.innerText = 'Intra-State (CGST + SGST)';
+                note.innerText = 'OUTPUT CGST / SGST';
+                taxLabelTitle.innerText = 'Total Tax (CGST+SGST)';
+            }
 
             // Calculate Unrounded Total and Round Off amount
             let unroundedTotal = subtotal + totalTaxRounded;
@@ -440,7 +467,6 @@
             document.getElementById('subtotalDisplay').innerText = `₹${subtotal.toFixed(2)}`;
             document.getElementById('taxDisplay').innerText = `₹${totalTaxRounded.toFixed(2)}`;
             
-            // Format Round Off Display
             let roundDisplay = document.getElementById('roundOffDisplay');
             roundDisplay.innerText = roundOff === 0 ? '₹0.00' : (roundOff > 0 ? `+₹${roundOff.toFixed(2)}` : `-₹${Math.abs(roundOff).toFixed(2)}`);
             
@@ -506,21 +532,28 @@
             filtered.forEach((inv, idx) => {
                 let subtotal = 0;
                 let totalTaxRounded = 0;
+                let isInterstate = (inv.state || 'Uttar Pradesh').trim().toLowerCase() !== 'uttar pradesh';
                 
                 inv.items.forEach(item => {
                     let amt = parseFloat((item.qty * item.rate).toFixed(2));
                     subtotal += amt;
                     let rawTax = amt * (item.gst / 100);
-                    let halfTax = parseFloat((rawTax / 2).toFixed(2));
-                    totalTaxRounded += (halfTax * 2);
+                    if (isInterstate) {
+                        totalTaxRounded += parseFloat(rawTax.toFixed(2));
+                    } else {
+                        let halfTax = parseFloat((rawTax / 2).toFixed(2));
+                        totalTaxRounded += (halfTax * 2);
+                    }
                 });
 
-                // Apply Rounding in the Table List as well
                 let unroundedTotal = subtotal + totalTaxRounded;
                 let grandTotal = Math.round(unroundedTotal);
                 
                 let displayMailingName = inv.mailingName ? inv.mailingName : '<span class="text-slate-400 italic">Same as Ledger</span>';
                 let displayState = inv.state || 'Uttar Pradesh';
+                let taxBadge = isInterstate 
+                    ? '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-xs font-semibold">IGST</span>'
+                    : '<span class="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded text-xs font-semibold">CGST+SGST</span>';
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
@@ -530,6 +563,7 @@
                     <td class="p-4 font-medium text-slate-800">${inv.customer}</td>
                     <td class="p-4 text-slate-600">${displayMailingName}</td>
                     <td class="p-4 text-slate-600">${displayState}</td>
+                    <td class="p-4">${taxBadge}</td>
                     <td class="p-4 text-right text-slate-600">₹${subtotal.toFixed(2)}</td>
                     <td class="p-4 text-right font-bold text-slate-900">₹${grandTotal.toFixed(2)}</td>
                     <td class="p-4 text-center">
@@ -554,12 +588,18 @@
             invoices.forEach(inv => {
                 let sub = 0;
                 let tax = 0;
+                let isInterstate = (inv.state || 'Uttar Pradesh').trim().toLowerCase() !== 'uttar pradesh';
+
                 inv.items.forEach(item => {
                     let amt = parseFloat((item.qty * item.rate).toFixed(2));
                     sub += amt;
                     let rawTax = amt * (item.gst / 100);
-                    let halfTax = parseFloat((rawTax / 2).toFixed(2));
-                    tax += (halfTax * 2);
+                    if (isInterstate) {
+                        tax += parseFloat(rawTax.toFixed(2));
+                    } else {
+                        let halfTax = parseFloat((rawTax / 2).toFixed(2));
+                        tax += (halfTax * 2);
+                    }
                 });
                 totalSales += sub;
                 totalTax += tax;
@@ -587,6 +627,7 @@
 
                 let effectiveMailingName = inv.mailingName && inv.mailingName.trim() !== '' ? inv.mailingName : inv.customer;
                 let stateName = inv.state || 'Uttar Pradesh';
+                let isInterstate = stateName.trim().toLowerCase() !== 'uttar pradesh';
 
                 inv.items.forEach(item => {
                     let amt = parseFloat((item.qty * item.rate).toFixed(2));
@@ -600,9 +641,15 @@
                 let processedTaxMap = {};
 
                 for (let [rate, taxAmt] of Object.entries(taxMap)) {
-                    let halfTax = parseFloat((taxAmt / 2).toFixed(2));
-                    processedTaxMap[rate] = halfTax;
-                    totalTaxRounded += (halfTax * 2);
+                    if (isInterstate) {
+                        let fullTax = parseFloat(taxAmt.toFixed(2));
+                        processedTaxMap[rate] = fullTax;
+                        totalTaxRounded += fullTax;
+                    } else {
+                        let halfTax = parseFloat((taxAmt / 2).toFixed(2));
+                        processedTaxMap[rate] = halfTax;
+                        totalTaxRounded += (halfTax * 2);
+                    }
                 }
 
                 // Apply Rounding Off Logic mathematically
@@ -666,29 +713,38 @@
                 xml += `       </BILLALLOCATIONS.LIST>\n`;
                 xml += `      </LEDGERENTRIES.LIST>\n`;
 
-                // 3. Tax Ledgers
-                for (let [rate, halfTax] of Object.entries(processedTaxMap)) {
-                    let halfRate = parseFloat(rate) / 2;
+                // 3. Tax Ledgers: Branching for IGST (Inter-State) vs CGST+SGST (Intra-State)
+                if (isInterstate) {
+                    for (let [rate, fullTax] of Object.entries(processedTaxMap)) {
+                        xml += `      <LEDGERENTRIES.LIST>\n`;
+                        xml += `       <LEDGERNAME>OUTPUT IGST @${rate}%</LEDGERNAME>\n`;
+                        xml += `       <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
+                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
+                        xml += `       <AMOUNT>${fullTax.toFixed(2)}</AMOUNT>\n`;
+                        xml += `      </LEDGERENTRIES.LIST>\n`;
+                    }
+                } else {
+                    for (let [rate, halfTax] of Object.entries(processedTaxMap)) {
+                        let halfRate = parseFloat(rate) / 2;
 
-                    xml += `      <LEDGERENTRIES.LIST>\n`;
-                    xml += `       <LEDGERNAME>OUTPUT CGST @${halfRate}%</LEDGERNAME>\n`;
-                    xml += `       <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
-                    xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
-                    xml += `       <AMOUNT>${halfTax.toFixed(2)}</AMOUNT>\n`;
-                    xml += `      </LEDGERENTRIES.LIST>\n`;
+                        xml += `      <LEDGERENTRIES.LIST>\n`;
+                        xml += `       <LEDGERNAME>OUTPUT CGST @${halfRate}%</LEDGERNAME>\n`;
+                        xml += `       <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
+                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
+                        xml += `       <AMOUNT>${halfTax.toFixed(2)}</AMOUNT>\n`;
+                        xml += `      </LEDGERENTRIES.LIST>\n`;
 
-                    xml += `      <LEDGERENTRIES.LIST>\n`;
-                    xml += `       <LEDGERNAME>OUTPUT SGST @${halfRate}%</LEDGERNAME>\n`;
-                    xml += `       <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
-                    xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
-                    xml += `       <AMOUNT>${halfTax.toFixed(2)}</AMOUNT>\n`;
-                    xml += `      </LEDGERENTRIES.LIST>\n`;
+                        xml += `      <LEDGERENTRIES.LIST>\n`;
+                        xml += `       <LEDGERNAME>OUTPUT SGST @${halfRate}%</LEDGERNAME>\n`;
+                        xml += `       <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>\n`;
+                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
+                        xml += `       <AMOUNT>${halfTax.toFixed(2)}</AMOUNT>\n`;
+                        xml += `      </LEDGERENTRIES.LIST>\n`;
+                    }
                 }
 
                 // 4. Round Off Ledger (Appended ONLY if there is a fractional difference)
                 if (Math.abs(roundOffAmt) > 0.001) {
-                    // In Tally XML, Credit (adding to bill) has ISDEEMEDPOSITIVE = 'No' (positive AMOUNT)
-                    // Debit (subtracting from bill) has ISDEEMEDPOSITIVE = 'Yes' (negative AMOUNT)
                     let isDeemedPos = roundOffAmt < 0 ? 'Yes' : 'No';
                     
                     xml += `      <LEDGERENTRIES.LIST>\n`;
@@ -726,13 +782,18 @@
 
             let subtotal = 0;
             let totalTaxRounded = 0;
+            let isInterstate = (currentViewInvoice.state || 'Uttar Pradesh').trim().toLowerCase() !== 'uttar pradesh';
 
             let itemsHtml = currentViewInvoice.items.map(i => {
                 let amt = parseFloat((i.qty * i.rate).toFixed(2));
                 subtotal += amt;
                 let rawTax = amt * (i.gst / 100);
-                let halfTax = parseFloat((rawTax / 2).toFixed(2));
-                totalTaxRounded += (halfTax * 2);
+                if (isInterstate) {
+                    totalTaxRounded += parseFloat(rawTax.toFixed(2));
+                } else {
+                    let halfTax = parseFloat((rawTax / 2).toFixed(2));
+                    totalTaxRounded += (halfTax * 2);
+                }
 
                 return `
                     <tr class="border-b border-slate-100">
@@ -752,6 +813,7 @@
 
             let displayMailing = currentViewInvoice.mailingName ? currentViewInvoice.mailingName : currentViewInvoice.customer;
             let displayState = currentViewInvoice.state || 'Uttar Pradesh';
+            let taxTypeLabel = isInterstate ? 'IGST' : 'CGST + SGST';
 
             document.getElementById('invoicePreviewContent').innerHTML = `
                 <div class="flex justify-between items-start border-b border-slate-200 pb-4">
@@ -763,7 +825,7 @@
                         <p class="text-xs font-semibold text-slate-600">Customer (Ledger):</p>
                         <p class="text-sm font-bold text-slate-800">${currentViewInvoice.customer}</p>
                         <p class="text-xs text-slate-500 mt-1">Mailing Name: ${displayMailing}</p>
-                        <p class="text-xs text-slate-500">State: ${displayState}</p>
+                        <p class="text-xs text-slate-500">State: ${displayState} (${taxTypeLabel})</p>
                     </div>
                 </div>
                 <table class="w-full text-xs text-left">
@@ -780,7 +842,7 @@
                 </table>
                 <div class="text-right space-y-1 pt-2">
                     <p class="text-xs text-slate-500">Subtotal: ₹${subtotal.toFixed(2)}</p>
-                    <p class="text-xs text-slate-500">GST Collected: ₹${totalTaxRounded.toFixed(2)}</p>
+                    <p class="text-xs text-slate-500">${taxTypeLabel} Collected: ₹${totalTaxRounded.toFixed(2)}</p>
                     <p class="text-xs text-amber-600">Round Off: ${roundText}</p>
                     <p class="text-sm font-bold text-indigo-900 mt-1 border-t border-slate-200 pt-1">Grand Total: ₹${grandTotal.toFixed(2)}</p>
                 </div>
