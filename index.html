@@ -343,7 +343,14 @@
                     Object.keys(data).forEach(key => {
                         invoices.push({ id: key, ...data[key] });
                     });
-                    invoices.reverse();
+                    
+                    // NEW DESCENDING SORT ALGORITHM (Date -> Number)
+                    invoices.sort((a, b) => {
+                        const dateA = new Date(a.date).getTime();
+                        const dateB = new Date(b.date).getTime();
+                        if (dateB !== dateA) return dateB - dateA; // Date Descending
+                        return b.number.localeCompare(a.number); // Invoice No Descending
+                    });
                 }
                 generateNextInvoiceNo();
                 renderInvoices();
