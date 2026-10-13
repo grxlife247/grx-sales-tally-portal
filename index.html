@@ -433,10 +433,8 @@
                 let rawTax = amt * (gstRate / 100);
 
                 if (isInterstate) {
-                    // Inter-state: Full IGST
                     totalTaxRounded += parseFloat(rawTax.toFixed(2));
                 } else {
-                    // Intra-state (UP): Half CGST + Half SGST
                     let halfTax = parseFloat((rawTax / 2).toFixed(2));
                     totalTaxRounded += (halfTax * 2);
                 }
@@ -659,14 +657,14 @@
                 let tallyDate = inv.date.replace(/-/g, '');
 
                 xml += `    <TALLYMESSAGE xmlns:UDF="TallyUDF">\n`;
-                xml += `     <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">\n`;
+                xml += `     <VOUCHER VCHTYPE="Tata 1mg Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">\n`;
                 xml += `      <DATE>${tallyDate}</DATE>\n`;
                 xml += `      <VCHSTATUSDATE>${tallyDate}</VCHSTATUSDATE>\n`;
                 xml += `      <GSTREGISTRATIONTYPE>Unregistered/Consumer</GSTREGISTRATIONTYPE>\n`;
                 xml += `      <STATENAME>${escapeXml(stateName)}</STATENAME>\n`;
                 xml += `      <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>\n`;
                 xml += `      <PLACEOFSUPPLY>${escapeXml(stateName)}</PLACEOFSUPPLY>\n`;
-                xml += `      <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>\n`;
+                xml += `      <VOUCHERTYPENAME>Tata 1mg Sales</VOUCHERTYPENAME>\n`;
                 xml += `      <PARTYNAME>${escapeXml(inv.customer)}</PARTYNAME>\n`;
                 xml += `      <PARTYLEDGERNAME>${escapeXml(inv.customer)}</PARTYLEDGERNAME>\n`;
                 xml += `      <VOUCHERNUMBER>${inv.number}</VOUCHERNUMBER>\n`;
