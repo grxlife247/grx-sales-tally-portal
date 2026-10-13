@@ -15,7 +15,7 @@
 
     <!-- Header -->
     <header class="bg-indigo-900 text-white shadow-md">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col lg:flex-row justify-between items-center gap-4">
             <div class="flex items-center space-x-3">
                 <div class="bg-indigo-700 p-2.5 rounded-lg">
                     <i class="fa-solid fa-capsules text-2xl text-amber-400"></i>
@@ -25,12 +25,15 @@
                     <p class="text-xs text-indigo-200">GSTIN: <span class="font-mono text-amber-300">09AAGCG7157F1ZE</span> | State: Uttar Pradesh</p>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center justify-center gap-3">
                 <button onclick="openInvoiceModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-medium text-sm transition flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-plus"></i> New Voucher
                 </button>
                 <button onclick="exportAllTallyXML()" class="bg-amber-500 hover:bg-amber-600 text-indigo-950 px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
-                    <i class="fa-solid fa-file-export"></i> Export All to Tally (XML)
+                    <i class="fa-solid fa-file-export"></i> Tally XML
+                </button>
+                <button onclick="exportGSTR1()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-file-csv"></i> GSTR-1 Report
                 </button>
             </div>
         </div>
@@ -343,13 +346,15 @@
             });
         }
 
+        // Updated number generator according to specifications
         function generateNextInvoiceNo() {
             let selectedType = document.querySelector('input[name="voucherType"]:checked').value;
             let isCN = selectedType.includes('CN');
-            let prefix = isCN ? 'CN-2026-' : 'INV-2026-';
             
+            let prefix = isCN ? 'CR083192600000' : 'C0831926000000';
             let count = invoices.filter(i => (i.voucherType || 'Tata 1mg Sales') === selectedType).length;
-            const nextNo = `${prefix}${String(count + 1).padStart(3, '0')}`;
+            
+            const nextNo = `${prefix}${String(count + 1).padStart(2, '0')}`;
             document.getElementById('invNumber').value = nextNo;
         }
 
@@ -594,7 +599,7 @@
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
                 tr.innerHTML = `
-                    <td class="p-4 font-mono font-bold text-indigo-900">${inv.number}</td>
+                    <td class="p-4 font-mono font-bold text-indigo-600 hover:text-indigo-900 cursor-pointer underline" onclick="viewInvoice('${inv.id}')" title="Click to view preview">${inv.number}</td>
                     <td class="p-4">${typeBadge}</td>
                     <td class="p-4 text-slate-600">${inv.date}</td>
                     <td class="p-4 font-medium text-slate-800">${inv.customer}</td>
@@ -842,6 +847,79 @@
                     case '"': return '&quot;';
                 }
             });
+        }
+
+        // Feature: Export GSTR-1 Report (CSV)
+        function exportGSTR1() {
+            if (invoices.length === 0) {
+                alert('No data available for GSTR-1 export.');
+                return;
+            }
+
+            let csv = "Invoice/Voucher No,Voucher Date,Voucher Type,Customer (Ledger),Mailing Name,Place Of Supply (State),Taxable Value,IGST Amount,CGST Amount,SGST Amount,Round Off,Total Invoice Value\n";
+
+            invoices.forEach(inv => {
+                let subtotal = 0;
+                let igst = 0, cgst = 0, sgst = 0;
+                let isInterstate = (inv.state || 'Uttar Pradesh').trim().toLowerCase() !== 'uttar pradesh';
+                let vchType = inv.voucherType || 'Tata 1mg Sales';
+                let isCN = vchType.includes('CN');
+                
+                inv.items.forEach(item => {
+                    let amt = parseFloat((item.qty * item.rate).toFixed(2));
+                    subtotal += amt;
+                    let rawTax = amt * (item.gst / 100);
+                    if (isInterstate) {
+                        igst += parseFloat(rawTax.toFixed(2));
+                    } else {
+                        let halfTax = parseFloat((rawTax / 2).toFixed(2));
+                        cgst += halfTax;
+                        sgst += halfTax;
+                    }
+                });
+
+                let totalTaxRounded = igst + cgst + sgst;
+                let unroundedTotal = subtotal + totalTaxRounded;
+                let grandTotal = Math.round(unroundedTotal);
+                let roundOff = grandTotal - unroundedTotal;
+                
+                // Adjust signs for Credit Notes to indicate negative value
+                if (isCN) {
+                    subtotal *= -1;
+                    igst *= -1;
+                    cgst *= -1;
+                    sgst *= -1;
+                    roundOff *= -1;
+                    grandTotal *= -1;
+                }
+
+                let row = [
+                    inv.number,
+                    inv.date,
+                    vchType,
+                    `"${inv.customer}"`,
+                    `"${inv.mailingName || inv.customer}"`,
+                    `"${inv.state || 'Uttar Pradesh'}"`,
+                    subtotal.toFixed(2),
+                    igst.toFixed(2),
+                    cgst.toFixed(2),
+                    sgst.toFixed(2),
+                    roundOff.toFixed(2),
+                    grandTotal.toFixed(2)
+                ];
+
+                csv += row.join(",") + "\n";
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `GSTR1_Report_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         function viewInvoice(id) {
