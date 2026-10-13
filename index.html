@@ -94,6 +94,7 @@
                             <th class="p-4">Date</th>
                             <th class="p-4">Party Ledger</th>
                             <th class="p-4">Mailing Name</th>
+                            <th class="p-4">State</th>
                             <th class="p-4 text-right">Taxable Amount</th>
                             <th class="p-4 text-right">Total (Inc. GST)</th>
                             <th class="p-4 text-center">Actions</th>
@@ -126,8 +127,8 @@
                 <input type="hidden" id="editIndex" value="-1">
                 <input type="hidden" id="editFirebaseKey" value="">
                 
-                <!-- General Details (Updated to 4 columns for Mailing Name) -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- General Details -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Invoice Number</label>
                         <input type="text" id="invNumber" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono">
@@ -140,9 +141,48 @@
                         <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Party Ledger Name</label>
                         <input type="text" id="invCustomer" placeholder="e.g. Tata 1mg Receivable" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50">
                     </div>
-                    <div>
+                    <div class="lg:col-span-2">
                         <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Mailing Name (Buyer)</label>
                         <input type="text" id="invMailingName" placeholder="e.g. Shabnam Khan" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">State</label>
+                        <select id="invState" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="Uttar Pradesh">Uttar Pradesh</option>
+                            <option value="Haryana">Haryana</option>
+                            <option value="Delhi">Delhi</option>
+                            <option value="Maharashtra">Maharashtra</option>
+                            <option value="Karnataka">Karnataka</option>
+                            <option value="Gujarat">Gujarat</option>
+                            <option value="Rajasthan">Rajasthan</option>
+                            <option value="Punjab">Punjab</option>
+                            <option value="Madhya Pradesh">Madhya Pradesh</option>
+                            <option value="Bihar">Bihar</option>
+                            <option value="West Bengal">West Bengal</option>
+                            <option value="Tamil Nadu">Tamil Nadu</option>
+                            <option value="Kerala">Kerala</option>
+                            <option value="Telangana">Telangana</option>
+                            <option value="Andhra Pradesh">Andhra Pradesh</option>
+                            <option value="Assam">Assam</option>
+                            <option value="Odisha">Odisha</option>
+                            <option value="Jharkhand">Jharkhand</option>
+                            <option value="Chhattisgarh">Chhattisgarh</option>
+                            <option value="Uttarakhand">Uttarakhand</option>
+                            <option value="Himachal Pradesh">Himachal Pradesh</option>
+                            <option value="Goa">Goa</option>
+                            <option value="Tripura">Tripura</option>
+                            <option value="Meghalaya">Meghalaya</option>
+                            <option value="Manipur">Manipur</option>
+                            <option value="Nagaland">Nagaland</option>
+                            <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                            <option value="Mizoram">Mizoram</option>
+                            <option value="Sikkim">Sikkim</option>
+                            <option value="Jammu & Kashmir">Jammu & Kashmir</option>
+                            <option value="Ladakh">Ladakh</option>
+                            <option value="Chandigarh">Chandigarh</option>
+                            <option value="Puducherry">Puducherry</option>
+                            <option value="Andaman & Nicobar Islands">Andaman & Nicobar Islands</option>
+                        </select>
                     </div>
                 </div>
 
@@ -305,6 +345,7 @@
                 document.getElementById('invDate').value = inv.date;
                 document.getElementById('invCustomer').value = inv.customer;
                 document.getElementById('invMailingName').value = inv.mailingName || '';
+                document.getElementById('invState').value = inv.state || 'Uttar Pradesh';
                 
                 inv.items.forEach(item => addItemRow(item));
             } else {
@@ -312,9 +353,9 @@
                 document.getElementById('editIndex').value = -1;
                 document.getElementById('editFirebaseKey').value = '';
                 generateNextInvoiceNo();
-                // Defaulting to Tata 1mg
                 document.getElementById('invCustomer').value = 'Tata 1mg Receivable';
                 document.getElementById('invMailingName').value = '';
+                document.getElementById('invState').value = 'Uttar Pradesh';
                 addItemRow();
             }
             calculateTotals();
@@ -386,13 +427,13 @@
                 tr.querySelector('.item-amount').innerText = `₹${amt.toFixed(2)}`;
                 subtotal += amt;
                 
-                // 1 Paisa Rounding Fix: Emulating Tally's exact half-tax approach
+                // 1 Paisa Rounding Fix
                 let rawTax = amt * (gstRate / 100);
                 let halfTax = parseFloat((rawTax / 2).toFixed(2));
                 totalTaxRounded += (halfTax * 2);
             });
 
-            // Re-round grandTotal to eliminate any floating point 0.01 precision errors
+            // Re-round grandTotal
             let grandTotal = parseFloat((subtotal + totalTaxRounded).toFixed(2));
 
             document.getElementById('subtotalDisplay').innerText = `₹${subtotal.toFixed(2)}`;
@@ -427,7 +468,8 @@
                 number: document.getElementById('invNumber').value,
                 date: document.getElementById('invDate').value,
                 customer: document.getElementById('invCustomer').value,
-                mailingName: document.getElementById('invMailingName').value, // Added Mailing Name
+                mailingName: document.getElementById('invMailingName').value, 
+                state: document.getElementById('invState').value,
                 items: items
             };
 
@@ -469,6 +511,7 @@
 
                 let total = parseFloat((subtotal + totalTaxRounded).toFixed(2));
                 let displayMailingName = inv.mailingName ? inv.mailingName : '<span class="text-slate-400 italic">Same as Ledger</span>';
+                let displayState = inv.state || 'Uttar Pradesh';
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
@@ -477,6 +520,7 @@
                     <td class="p-4 text-slate-600">${inv.date}</td>
                     <td class="p-4 font-medium text-slate-800">${inv.customer}</td>
                     <td class="p-4 text-slate-600">${displayMailingName}</td>
+                    <td class="p-4 text-slate-600">${displayState}</td>
                     <td class="p-4 text-right text-slate-600">₹${subtotal.toFixed(2)}</td>
                     <td class="p-4 text-right font-bold text-slate-900">₹${total.toFixed(2)}</td>
                     <td class="p-4 text-center">
@@ -532,10 +576,9 @@
                 let subtotal = 0;
                 let taxMap = {};
 
-                // Determine effective mailing name (falls back to ledger name if empty)
                 let effectiveMailingName = inv.mailingName && inv.mailingName.trim() !== '' ? inv.mailingName : inv.customer;
+                let stateName = inv.state || 'Uttar Pradesh';
 
-                // Use the exact rounding logic to prevent 1-paisa mismatch in Tally Total
                 inv.items.forEach(item => {
                     let amt = parseFloat((item.qty * item.rate).toFixed(2));
                     subtotal += amt;
@@ -549,7 +592,7 @@
 
                 for (let [rate, taxAmt] of Object.entries(taxMap)) {
                     let halfTax = parseFloat((taxAmt / 2).toFixed(2));
-                    processedTaxMap[rate] = halfTax; // Store half tax for precise output
+                    processedTaxMap[rate] = halfTax;
                     totalTaxRounded += (halfTax * 2);
                 }
 
@@ -560,12 +603,18 @@
                 xml += `     <VOUCHER VCHTYPE="Sales" ACTION="Create" OBJVIEW="Invoice Voucher View">\n`;
                 xml += `      <DATE>${tallyDate}</DATE>\n`;
                 xml += `      <VCHSTATUSDATE>${tallyDate}</VCHSTATUSDATE>\n`;
+                xml += `      <GSTREGISTRATIONTYPE>Unregistered/Consumer</GSTREGISTRATIONTYPE>\n`;
+                xml += `      <STATENAME>${escapeXml(stateName)}</STATENAME>\n`;
+                xml += `      <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>\n`;
+                xml += `      <PLACEOFSUPPLY>${escapeXml(stateName)}</PLACEOFSUPPLY>\n`;
                 xml += `      <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>\n`;
                 xml += `      <PARTYNAME>${escapeXml(inv.customer)}</PARTYNAME>\n`;
                 xml += `      <PARTYLEDGERNAME>${escapeXml(inv.customer)}</PARTYLEDGERNAME>\n`;
                 xml += `      <VOUCHERNUMBER>${inv.number}</VOUCHERNUMBER>\n`;
                 xml += `      <BASICBUYERNAME>${escapeXml(inv.customer)}</BASICBUYERNAME>\n`;
                 xml += `      <PARTYMAILINGNAME>${escapeXml(effectiveMailingName)}</PARTYMAILINGNAME>\n`;
+                xml += `      <CONSIGNEEMAILINGNAME>${escapeXml(effectiveMailingName)}</CONSIGNEEMAILINGNAME>\n`;
+                xml += `      <CONSIGNEESTATENAME>${escapeXml(stateName)}</CONSIGNEESTATENAME>\n`;
                 xml += `      <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
                 xml += `      <VCHENTRYMODE>Item Invoice</VCHENTRYMODE>\n`;
                 xml += `      <ISINVOICE>Yes</ISINVOICE>\n`;
@@ -605,7 +654,7 @@
                 xml += `       </BILLALLOCATIONS.LIST>\n`;
                 xml += `      </LEDGERENTRIES.LIST>\n`;
 
-                // 3. Tax Ledgers (CGST & SGST) - Pulled safely from processedTaxMap
+                // 3. Tax Ledgers
                 for (let [rate, halfTax] of Object.entries(processedTaxMap)) {
                     let halfRate = parseFloat(rate) / 2;
 
@@ -671,6 +720,7 @@
 
             let total = parseFloat((subtotal + totalTaxRounded).toFixed(2));
             let displayMailing = currentViewInvoice.mailingName ? currentViewInvoice.mailingName : currentViewInvoice.customer;
+            let displayState = currentViewInvoice.state || 'Uttar Pradesh';
 
             document.getElementById('invoicePreviewContent').innerHTML = `
                 <div class="flex justify-between items-start border-b border-slate-200 pb-4">
@@ -682,6 +732,7 @@
                         <p class="text-xs font-semibold text-slate-600">Customer (Ledger):</p>
                         <p class="text-sm font-bold text-slate-800">${currentViewInvoice.customer}</p>
                         <p class="text-xs text-slate-500 mt-1">Mailing Name: ${displayMailing}</p>
+                        <p class="text-xs text-slate-500">State: ${displayState}</p>
                     </div>
                 </div>
                 <table class="w-full text-xs text-left">
