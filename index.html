@@ -124,7 +124,7 @@
 
     <!-- Modal: Create / Edit Voucher -->
     <div id="invoiceModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto hidden">
-        <div class="bg-white rounded-2xl shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col overflow-hidden">
             <div class="p-5 bg-indigo-900 text-white flex justify-between items-center">
                 <h3 id="modalTitle" class="font-bold text-lg"><i class="fa-solid fa-file-invoice mr-2"></i> Create Voucher</h3>
                 <button onclick="closeInvoiceModal()" class="text-indigo-200 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
@@ -221,9 +221,10 @@
                             <thead class="bg-slate-50 text-slate-600 uppercase text-xs border-b border-slate-200">
                                 <tr>
                                     <th class="p-3">Stock Item</th>
-                                    <th class="p-3 w-28">HSN</th>
-                                    <th class="p-3 w-24">Qty</th>
-                                    <th class="p-3 w-32">Rate (₹)</th>
+                                    <th class="p-3 w-24">HSN</th>
+                                    <th class="p-3 w-20">Qty</th>
+                                    <th class="p-3 w-28">Rate (₹)</th>
+                                    <th class="p-3 w-20">Disc (%)</th>
                                     <th class="p-3 w-32 text-right">Amount</th>
                                     <th class="p-3 w-12 text-center"></th>
                                 </tr>
@@ -260,7 +261,7 @@
 
     <!-- Modal: View Invoice & Tally XML Preview -->
     <div id="viewModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto hidden">
-        <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
             <div class="p-5 bg-indigo-900 text-white flex justify-between items-center">
                 <h3 class="font-bold text-lg"><i class="fa-solid fa-eye mr-2"></i> Voucher Preview & Tally XML</h3>
                 <button onclick="closeViewModal()" class="text-indigo-200 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
@@ -431,6 +432,9 @@
                 <td class="p-3">
                     <input type="number" step="0.01" class="item-rate w-full border border-slate-300 rounded-lg p-2 text-sm text-right" value="${data ? data.rate : stockCatalog[0].rate}" oninput="calculateTotals()">
                 </td>
+                <td class="p-3">
+                    <input type="number" step="0.01" min="0" max="100" class="item-disc w-full border border-slate-300 rounded-lg p-2 text-sm text-center" placeholder="%" value="${data && data.disc ? data.disc : ''}" oninput="calculateTotals()">
+                </td>
                 <td class="p-3 text-right font-semibold item-amount">₹0.00</td>
                 <td class="p-3 text-center">
                     <button type="button" onclick="this.closest('tr').remove(); calculateTotals();" class="text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash-can"></i></button>
@@ -463,8 +467,10 @@
 
                 const qty = parseFloat(tr.querySelector('.item-qty').value) || 0;
                 const rate = parseFloat(tr.querySelector('.item-rate').value) || 0;
+                const disc = parseFloat(tr.querySelector('.item-disc').value) || 0;
                 
-                const amt = parseFloat((qty * rate).toFixed(2));
+                let baseAmt = qty * rate;
+                let amt = parseFloat((baseAmt - (baseAmt * disc / 100)).toFixed(2));
                 
                 tr.querySelector('.item-amount').innerText = `₹${amt.toFixed(2)}`;
                 subtotal += amt;
@@ -523,6 +529,7 @@
                     uom: selectedItem ? selectedItem.uom : 'Btl',
                     qty: parseFloat(tr.querySelector('.item-qty').value),
                     rate: parseFloat(tr.querySelector('.item-rate').value),
+                    disc: parseFloat(tr.querySelector('.item-disc').value) || 0,
                     gst: selectedItem ? selectedItem.gst : 5
                 });
             });
@@ -574,7 +581,10 @@
                 let isCN = vchType.includes('CN');
                 
                 inv.items.forEach(item => {
-                    let amt = parseFloat((item.qty * item.rate).toFixed(2));
+                    let disc = item.disc || 0;
+                    let baseAmt = item.qty * item.rate;
+                    let amt = parseFloat((baseAmt - (baseAmt * disc / 100)).toFixed(2));
+                    
                     subtotal += amt;
                     let rawTax = amt * (item.gst / 100);
                     if (isInterstate) {
@@ -636,7 +646,10 @@
                 let isCN = vchType.includes('CN');
 
                 inv.items.forEach(item => {
-                    let amt = parseFloat((item.qty * item.rate).toFixed(2));
+                    let disc = item.disc || 0;
+                    let baseAmt = item.qty * item.rate;
+                    let amt = parseFloat((baseAmt - (baseAmt * disc / 100)).toFixed(2));
+                    
                     sub += amt;
                     let rawTax = amt * (item.gst / 100);
                     if (isInterstate) {
@@ -679,13 +692,19 @@
                 
                 let subtotal = 0;
                 let taxMap = {};
+                let hasDiscounts = false;
 
                 let effectiveMailingName = inv.mailingName && inv.mailingName.trim() !== '' ? inv.mailingName : inv.customer;
                 let stateName = inv.state || 'Uttar Pradesh';
                 let isInterstate = stateName.trim().toLowerCase() !== 'uttar pradesh';
 
                 inv.items.forEach(item => {
-                    let amt = parseFloat((item.qty * item.rate).toFixed(2));
+                    let disc = item.disc || 0;
+                    if(disc > 0) hasDiscounts = true;
+                    
+                    let baseAmt = item.qty * item.rate;
+                    let amt = parseFloat((baseAmt - (baseAmt * disc / 100)).toFixed(2));
+                    
                     subtotal += amt;
                     let rate = item.gst;
                     if (!taxMap[rate]) taxMap[rate] = 0;
@@ -717,6 +736,8 @@
                 
                 let partyAmountXML = isCreditNote ? `${grandTotal.toFixed(2)}` : `-${grandTotal.toFixed(2)}`;
                 let itemAmountXML = isCreditNote ? `-${subtotal.toFixed(2)}` : `${subtotal.toFixed(2)}`;
+                
+                let isDiscountXml = hasDiscounts ? 'Yes' : 'No';
 
                 xml += `    <TALLYMESSAGE xmlns:UDF="TallyUDF">\n`;
                 xml += `     <VOUCHER VCHTYPE="${vchTypeName}" ACTION="Create" OBJVIEW="Invoice Voucher View">\n`;
@@ -737,11 +758,13 @@
                 xml += `      <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
                 xml += `      <VCHENTRYMODE>Item Invoice</VCHENTRYMODE>\n`;
                 xml += `      <ISINVOICE>Yes</ISINVOICE>\n`;
-                xml += `      <HASDISCOUNTS>No</HASDISCOUNTS>\n`;
+                xml += `      <HASDISCOUNTS>${isDiscountXml}</HASDISCOUNTS>\n`;
 
                 inv.items.forEach(item => {
-                    let itemAmt = parseFloat((item.qty * item.rate).toFixed(2));
-                    let invAmountXML = isCreditNote ? `-${itemAmt.toFixed(2)}` : `${itemAmt.toFixed(2)}`;
+                    let disc = item.disc || 0;
+                    let baseAmt = item.qty * item.rate;
+                    let amt = parseFloat((baseAmt - (baseAmt * disc / 100)).toFixed(2));
+                    let invAmountXML = isCreditNote ? `-${amt.toFixed(2)}` : `${amt.toFixed(2)}`;
                     
                     xml += `      <ALLINVENTORYENTRIES.LIST>\n`;
                     xml += `       <STOCKITEMNAME>${escapeXml(item.name)}</STOCKITEMNAME>\n`;
@@ -750,6 +773,7 @@
                     xml += `       <GSTHSNNAME>${item.hsn}</GSTHSNNAME>\n`;
                     xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
                     xml += `       <RATE>${item.rate.toFixed(2)}/${item.uom}</RATE>\n`;
+                    if(disc > 0) xml += `       <DISCOUNT>${disc}</DISCOUNT>\n`;
                     xml += `       <AMOUNT>${invAmountXML}</AMOUNT>\n`;
                     xml += `       <ACTUALQTY> ${item.qty}.0 ${item.uom}</ACTUALQTY>\n`;
                     xml += `       <BILLEDQTY> ${item.qty}.0 ${item.uom}</BILLEDQTY>\n`;
@@ -844,7 +868,10 @@
             let isCN = vchType.includes('CN');
 
             let itemsHtml = currentViewInvoice.items.map(i => {
-                let amt = parseFloat((i.qty * i.rate).toFixed(2));
+                let disc = i.disc || 0;
+                let baseAmt = i.qty * i.rate;
+                let amt = parseFloat((baseAmt - (baseAmt * disc / 100)).toFixed(2));
+                
                 subtotal += amt;
                 let rawTax = amt * (i.gst / 100);
                 if (isInterstate) {
@@ -860,6 +887,7 @@
                         <td class="py-2 font-mono text-center">${i.hsn}</td>
                         <td class="py-2 text-center">${i.qty} ${i.uom}</td>
                         <td class="py-2 text-right">₹${i.rate.toFixed(2)}</td>
+                        <td class="py-2 text-center">${disc > 0 ? disc + '%' : '-'}</td>
                         <td class="py-2 text-right font-semibold">₹${amt.toFixed(2)}</td>
                     </tr>
                 `;
@@ -897,6 +925,7 @@
                             <th class="py-2 text-center">HSN</th>
                             <th class="py-2 text-center">Qty</th>
                             <th class="py-2 text-right">Rate</th>
+                            <th class="py-2 text-center">Disc</th>
                             <th class="py-2 text-right">Amount</th>
                         </tr>
                     </thead>
@@ -962,13 +991,10 @@
                 "Telangana": "36-Telangana", "Andhra Pradesh": "37-Andhra Pradesh", "Ladakh": "38-Ladakh"
             };
 
-            // 1. Process B2CS (B2C Small) - Grouped by POS & Rate
             let b2csMap = {};
             let hsnMap = {};
-            
             let totalSalesCount = 0;
             let totalCNCount = 0;
-            
             let minSalesNo = null, maxSalesNo = null;
             let minCNNo = null, maxCNNo = null;
 
@@ -979,7 +1005,6 @@
                 let isCN = vchType.includes('CN');
                 let sign = isCN ? -1 : 1;
 
-                // Document Summary Tracking
                 if(isCN) {
                     totalCNCount++;
                     if(!minCNNo || inv.number < minCNNo) minCNNo = inv.number;
@@ -991,10 +1016,13 @@
                 }
 
                 inv.items.forEach(item => {
-                    let amt = parseFloat((item.qty * item.rate).toFixed(2));
-                    let taxRate = item.gst;
+                    let disc = item.disc || 0;
+                    let baseAmt = item.qty * item.rate;
+                    let amt = parseFloat((baseAmt - (baseAmt * disc / 100)).toFixed(2));
                     
+                    let taxRate = item.gst;
                     let isInterstate = stateName.toLowerCase() !== 'uttar pradesh';
+                    
                     let taxAmt = 0;
                     if(isInterstate){
                         taxAmt = parseFloat((amt * (taxRate / 100)).toFixed(2));
@@ -1028,7 +1056,6 @@
                 });
             });
 
-            // Prepare Worksheets Data
             let b2csData = [["Type", "Place Of Supply", "Applicable % of Tax Rate", "Rate", "Taxable Value", "Cess Amount", "E-Commerce GSTIN"]];
             Object.values(b2csMap).forEach(row => {
                 if(Math.abs(row.taxable) > 0.01) {
@@ -1048,20 +1075,16 @@
             if(totalSalesCount > 0) docsData.push(["Invoices for outward supply", minSalesNo, maxSalesNo, totalSalesCount, 0]);
             if(totalCNCount > 0) docsData.push(["Credit Notes", minCNNo, maxCNNo, totalCNCount, 0]);
 
-            // Create Workbook
             const wb = XLSX.utils.book_new();
             
-            // Add Empty Sheets for strict V2.2 compliance (B2B, CDNR not needed for unregistered)
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["GSTIN/UIN of Recipient","Receiver Name","Invoice Number","Invoice date","Invoice Value","Place Of Supply","Reverse Charge","Applicable % of Tax Rate","Invoice Type","E-Commerce GSTIN","Rate","Taxable Value","Cess Amount"]]), "b2b");
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["GSTIN/UIN of Recipient","Receiver Name","Note Number","Note Date","Note Type","Place Of Supply","Reverse Charge","Note Supply Type","Note Value","Applicable % of Tax Rate","Rate","Taxable Value","Cess Amount"]]), "cdnr");
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["UR Type","Note Number","Note Date","Note Type","Place Of Supply","Note Value","Applicable % of Tax Rate","Rate","Taxable Value","Cess Amount"]]), "cdnur");
             
-            // Add Populated Sheets
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(b2csData), "b2cs");
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hsnData), "hsn");
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(docsData), "docs");
 
-            // Export
             XLSX.writeFile(wb, `GSTR1_V2.2_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
