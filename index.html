@@ -346,7 +346,6 @@
             });
         }
 
-        // Updated number generator according to specifications
         function generateNextInvoiceNo() {
             let selectedType = document.querySelector('input[name="voucherType"]:checked').value;
             let isCN = selectedType.includes('CN');
@@ -645,7 +644,6 @@
                     }
                 });
                 
-                // Deduct Credit Notes from Net Stats
                 if(isCN){
                     totalSales -= sub;
                     totalTax -= tax;
@@ -711,7 +709,6 @@
                 let roundOffAmt = parseFloat((grandTotal - unroundedTotal).toFixed(2));
                 let tallyDate = inv.date.replace(/-/g, '');
 
-                // Accounting Logic for Sales vs Credit Note
                 let partyIsDeemedPos = isCreditNote ? 'No' : 'Yes'; 
                 let itemIsDeemedPos = isCreditNote ? 'Yes' : 'No';  
                 
@@ -739,7 +736,6 @@
                 xml += `      <ISINVOICE>Yes</ISINVOICE>\n`;
                 xml += `      <HASDISCOUNTS>No</HASDISCOUNTS>\n`;
 
-                // 1. Inventory Items
                 inv.items.forEach(item => {
                     let itemAmt = parseFloat((item.qty * item.rate).toFixed(2));
                     let invAmountXML = isCreditNote ? `-${itemAmt.toFixed(2)}` : `${itemAmt.toFixed(2)}`;
@@ -762,7 +758,6 @@
                     xml += `      </ALLINVENTORYENTRIES.LIST>\n`;
                 });
 
-                // 2. Party Ledger
                 xml += `      <LEDGERENTRIES.LIST>\n`;
                 xml += `       <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
                 xml += `       <ISDEEMEDPOSITIVE>${partyIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
@@ -775,7 +770,6 @@
                 xml += `       </BILLALLOCATIONS.LIST>\n`;
                 xml += `      </LEDGERENTRIES.LIST>\n`;
 
-                // 3. Tax Ledgers
                 if (isInterstate) {
                     for (let [rate, fullTax] of Object.entries(processedTaxMap)) {
                         let taxAmtXML = isCreditNote ? `-${fullTax.toFixed(2)}` : `${fullTax.toFixed(2)}`;
@@ -807,7 +801,6 @@
                     }
                 }
 
-                // 4. Round Off
                 if (Math.abs(roundOffAmt) > 0.001) {
                     let isDeemedPos = '';
                     let finalRoundAmt = 0;
@@ -837,6 +830,129 @@
             return xml;
         }
 
+        // --- NEW GSTR-1 EXPORT LOGIC FOR V2.2 OFFLINE TOOL ---
+        function exportGSTR1() {
+            if (invoices.length === 0) {
+                alert('No data available for GSTR-1 export.');
+                return;
+            }
+
+            const gstStateCodes = {
+                "Jammu & Kashmir": "01-Jammu & Kashmir",
+                "Himachal Pradesh": "02-Himachal Pradesh",
+                "Punjab": "03-Punjab",
+                "Chandigarh": "04-Chandigarh",
+                "Uttarakhand": "05-Uttarakhand",
+                "Haryana": "06-Haryana",
+                "Delhi": "07-Delhi",
+                "Rajasthan": "08-Rajasthan",
+                "Uttar Pradesh": "09-Uttar Pradesh",
+                "Bihar": "10-Bihar",
+                "Sikkim": "11-Sikkim",
+                "Arunachal Pradesh": "12-Arunachal Pradesh",
+                "Nagaland": "13-Nagaland",
+                "Manipur": "14-Manipur",
+                "Mizoram": "15-Mizoram",
+                "Tripura": "16-Tripura",
+                "Meghalaya": "17-Meghalaya",
+                "Assam": "18-Assam",
+                "West Bengal": "19-West Bengal",
+                "Jharkhand": "20-Jharkhand",
+                "Odisha": "21-Odisha",
+                "Chhattisgarh": "22-Chhattisgarh",
+                "Madhya Pradesh": "23-Madhya Pradesh",
+                "Gujarat": "24-Gujarat",
+                "Maharashtra": "27-Maharashtra",
+                "Karnataka": "29-Karnataka",
+                "Goa": "30-Goa",
+                "Kerala": "32-Kerala",
+                "Tamil Nadu": "33-Tamil Nadu",
+                "Puducherry": "34-Puducherry",
+                "Andaman & Nicobar Islands": "35-Andaman & Nicobar Islands",
+                "Telangana": "36-Telangana",
+                "Andhra Pradesh": "37-Andhra Pradesh",
+                "Ladakh": "38-Ladakh"
+            };
+
+            function formatGSTRDate(dateStr) {
+                const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                const d = new Date(dateStr);
+                let day = String(d.getDate()).padStart(2, '0');
+                let month = months[d.getMonth()];
+                let year = String(d.getFullYear()).slice(-2);
+                return `${day}-${month}-${year}`; // e.g., 13-Oct-26
+            }
+
+            // GSTR-1 Excel Template V2.2 B2B Column Headers
+            let csv = "GSTIN/UIN of Recipient,Receiver Name,Invoice Number,Invoice date,Invoice Value,Place Of Supply,Reverse Charge,Applicable % of Tax Rate,Invoice Type,E-Commerce GSTIN,Rate,Taxable Value,Cess Amount\n";
+
+            invoices.forEach(inv => {
+                let subtotal = 0;
+                let totalTaxRounded = 0;
+                let isInterstate = (inv.state || 'Uttar Pradesh').trim().toLowerCase() !== 'uttar pradesh';
+                let vchType = inv.voucherType || 'Tata 1mg Sales';
+                let isCN = vchType.includes('CN');
+
+                let rateGroups = {};
+
+                inv.items.forEach(item => {
+                    let amt = parseFloat((item.qty * item.rate).toFixed(2));
+                    subtotal += amt;
+                    let rawTax = amt * (item.gst / 100);
+                    if (isInterstate) {
+                        totalTaxRounded += parseFloat(rawTax.toFixed(2));
+                    } else {
+                        let halfTax = parseFloat((rawTax / 2).toFixed(2));
+                        totalTaxRounded += (halfTax * 2);
+                    }
+
+                    if (!rateGroups[item.gst]) rateGroups[item.gst] = 0;
+                    rateGroups[item.gst] += amt;
+                });
+
+                let unroundedTotal = subtotal + totalTaxRounded;
+                let grandTotal = Math.round(unroundedTotal);
+                
+                // Credit Notes exported as negative values for CA identification
+                let sign = isCN ? -1 : 1;
+
+                let stateName = inv.state || 'Uttar Pradesh';
+                let pos = gstStateCodes[stateName] || stateName;
+                let recName = inv.mailingName ? inv.mailingName : inv.customer;
+
+                // Group by tax rate per GSTR-1 logic
+                Object.keys(rateGroups).forEach(rate => {
+                    let taxableVal = rateGroups[rate];
+                    let row = [
+                        "", // GSTIN/UIN of Recipient (Blank for Unregistered)
+                        `"${recName}"`, // Receiver Name
+                        inv.number, // Invoice Number
+                        formatGSTRDate(inv.date), // Invoice date (DD-MMM-YY)
+                        (grandTotal * sign).toFixed(2), // Invoice Value
+                        `"${pos}"`, // Place Of Supply (State Code-Name)
+                        "N", // Reverse Charge
+                        "", // Applicable % of Tax Rate
+                        "Regular B2B", // Invoice Type
+                        "", // E-Commerce GSTIN
+                        rate, // Rate
+                        (taxableVal * sign).toFixed(2), // Taxable Value
+                        "0.00" // Cess Amount
+                    ];
+                    csv += row.join(",") + "\n";
+                });
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `GSTR1_Report_B2B_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
         function escapeXml(str) {
             return str.replace(/[<>&'"]/g, function (c) {
                 switch (c) {
@@ -847,79 +963,6 @@
                     case '"': return '&quot;';
                 }
             });
-        }
-
-        // Feature: Export GSTR-1 Report (CSV)
-        function exportGSTR1() {
-            if (invoices.length === 0) {
-                alert('No data available for GSTR-1 export.');
-                return;
-            }
-
-            let csv = "Invoice/Voucher No,Voucher Date,Voucher Type,Customer (Ledger),Mailing Name,Place Of Supply (State),Taxable Value,IGST Amount,CGST Amount,SGST Amount,Round Off,Total Invoice Value\n";
-
-            invoices.forEach(inv => {
-                let subtotal = 0;
-                let igst = 0, cgst = 0, sgst = 0;
-                let isInterstate = (inv.state || 'Uttar Pradesh').trim().toLowerCase() !== 'uttar pradesh';
-                let vchType = inv.voucherType || 'Tata 1mg Sales';
-                let isCN = vchType.includes('CN');
-                
-                inv.items.forEach(item => {
-                    let amt = parseFloat((item.qty * item.rate).toFixed(2));
-                    subtotal += amt;
-                    let rawTax = amt * (item.gst / 100);
-                    if (isInterstate) {
-                        igst += parseFloat(rawTax.toFixed(2));
-                    } else {
-                        let halfTax = parseFloat((rawTax / 2).toFixed(2));
-                        cgst += halfTax;
-                        sgst += halfTax;
-                    }
-                });
-
-                let totalTaxRounded = igst + cgst + sgst;
-                let unroundedTotal = subtotal + totalTaxRounded;
-                let grandTotal = Math.round(unroundedTotal);
-                let roundOff = grandTotal - unroundedTotal;
-                
-                // Adjust signs for Credit Notes to indicate negative value
-                if (isCN) {
-                    subtotal *= -1;
-                    igst *= -1;
-                    cgst *= -1;
-                    sgst *= -1;
-                    roundOff *= -1;
-                    grandTotal *= -1;
-                }
-
-                let row = [
-                    inv.number,
-                    inv.date,
-                    vchType,
-                    `"${inv.customer}"`,
-                    `"${inv.mailingName || inv.customer}"`,
-                    `"${inv.state || 'Uttar Pradesh'}"`,
-                    subtotal.toFixed(2),
-                    igst.toFixed(2),
-                    cgst.toFixed(2),
-                    sgst.toFixed(2),
-                    roundOff.toFixed(2),
-                    grandTotal.toFixed(2)
-                ];
-
-                csv += row.join(",") + "\n";
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `GSTR1_Report_${new Date().toISOString().slice(0,10)}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
         }
 
         function viewInvoice(id) {
