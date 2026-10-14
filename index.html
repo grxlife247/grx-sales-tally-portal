@@ -296,7 +296,7 @@
         </div>
     </div>
 
-    <!-- Modal: Tally XML Range Export -->
+    <!-- Modal: Tally XML Range Export with Filter -->
     <div id="xmlExportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
             <div class="p-5 bg-amber-500 text-indigo-950 flex justify-between items-center">
@@ -304,14 +304,22 @@
                 <button onclick="closeXmlModal()" class="hover:text-indigo-950/70 text-xl"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="p-6 space-y-4">
-                <p class="text-sm text-slate-600 mb-4">Select the range of vouchers you want to export to Tally XML.</p>
+                <p class="text-sm text-slate-600 mb-2">Select voucher type and range to export to Tally XML.</p>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Voucher Type Filter</label>
+                    <select id="exportFilterType" onchange="updateXmlRangeDropdowns()" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500 font-medium bg-slate-50">
+                        <option value="ALL">All Vouchers (Sales + CN)</option>
+                        <option value="SALES">Sales Invoices Only</option>
+                        <option value="CN">Credit Notes Only</option>
+                    </select>
+                </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">From Voucher</label>
-                    <select id="exportFrom" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500"></select>
+                    <select id="exportFrom" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500 font-mono"></select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">To Voucher</label>
-                    <select id="exportTo" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500"></select>
+                    <select id="exportTo" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500 font-mono"></select>
                 </div>
                 <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-200">
                     <button onclick="closeXmlModal()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 text-sm font-medium transition">Cancel</button>
@@ -482,22 +490,8 @@
                 alert("No vouchers available to export.");
                 return;
             }
-            
-            let sortedInvs = [...invoices].sort((a, b) => {
-                const dA = a.date ? new Date(a.date).getTime() : 0;
-                const dB = b.date ? new Date(b.date).getTime() : 0;
-                if (dA !== dB) return dA - dB; 
-                return (a.number || "").localeCompare(b.number || ""); 
-            });
-            
-            let optionsHtml = sortedInvs.map(inv => `<option value="${inv.id}">${inv.number || 'N/A'} (${inv.date || 'No Date'})</option>`).join('');
-            
-            document.getElementById('exportFrom').innerHTML = optionsHtml;
-            document.getElementById('exportTo').innerHTML = optionsHtml;
-            
-            let toSelect = document.getElementById('exportTo');
-            toSelect.selectedIndex = toSelect.options.length - 1;
-
+            document.getElementById('exportFilterType').value = 'ALL';
+            updateXmlRangeDropdowns();
             document.getElementById('xmlExportModal').classList.remove('hidden');
         }
 
@@ -505,12 +499,55 @@
             document.getElementById('xmlExportModal').classList.add('hidden');
         }
 
+        function updateXmlRangeDropdowns() {
+            let filterVal = document.getElementById('exportFilterType').value;
+            
+            let filtered = invoices.filter(inv => {
+                let vchType = inv.voucherType || 'Tata 1mg Sales';
+                let isCN = vchType.includes('CN');
+                if (filterVal === 'SALES' && isCN) return false;
+                if (filterVal === 'CN' && !isCN) return false;
+                return true;
+            });
+
+            let sortedInvs = [...filtered].sort((a, b) => {
+                const dA = a.date ? new Date(a.date).getTime() : 0;
+                const dB = b.date ? new Date(b.date).getTime() : 0;
+                if (dA !== dB) return dA - dB; 
+                return (a.number || "").localeCompare(b.number || ""); 
+            });
+
+            let optionsHtml = sortedInvs.length > 0 ? sortedInvs.map(inv => `<option value="${inv.id}">${inv.number || 'N/A'} (${inv.date || 'No Date'})</option>`).join('') : '<option value="">No Vouchers Found</option>';
+            
+            document.getElementById('exportFrom').innerHTML = optionsHtml;
+            document.getElementById('exportTo').innerHTML = optionsHtml;
+            
+            let toSelect = document.getElementById('exportTo');
+            if (toSelect.options.length > 0) {
+                toSelect.selectedIndex = toSelect.options.length - 1;
+            }
+        }
+
         function processRangeExport() {
             try {
                 let fromId = document.getElementById('exportFrom').value;
                 let toId = document.getElementById('exportTo').value;
                 
-                let sortedInvs = [...invoices].sort((a, b) => {
+                if (!fromId || !toId) {
+                    alert("Please select a valid voucher range.");
+                    return;
+                }
+
+                let filterVal = document.getElementById('exportFilterType').value;
+                let filtered = invoices.filter(inv => {
+                    let vchType = inv.voucherType || 'Tata 1mg Sales';
+                    let isCN = vchType.includes('CN');
+                    if (filterVal === 'SALES' && isCN) return false;
+                    if (filterVal === 'CN' && !isCN) return false;
+                    return true;
+                });
+                
+                let sortedInvs = [...filtered].sort((a, b) => {
                     const dA = a.date ? new Date(a.date).getTime() : 0;
                     const dB = b.date ? new Date(b.date).getTime() : 0;
                     if (dA !== dB) return dA - dB; 
@@ -539,7 +576,7 @@
                 }
                 
                 const xmlData = generateTallyXML(selectedInvs);
-                downloadFile(xmlData, `GrxLife_RangeExport_${new Date().toISOString().slice(0,10)}.xml`);
+                downloadFile(xmlData, `GrxLife_RangeExport_${filterVal}_${new Date().toISOString().slice(0,10)}.xml`);
                 closeXmlModal();
 
             } catch (err) {
@@ -1136,7 +1173,7 @@
             URL.revokeObjectURL(url);
         }
 
-        // --- GSTR-1 MULTI-SHEET EXCEL EXPORT (HSN MERGED & NO DESCRIPTION) ---
+        // --- GSTR-1 MULTI-SHEET EXCEL EXPORT ---
         function exportGSTR1Excel() {
             if (invoices.length === 0) {
                 alert('No data available for GSTR-1 export.');
@@ -1205,7 +1242,6 @@
                         }
                         b2csMap[b2csKey].taxable += (amt * sign);
 
-                        // HSN Aggregation - Keyed strictly by HSN Code to merge duplicates
                         let hsnVal = String(item.hsn || '0000').trim();
                         let hsnKey = `${hsnVal}_${taxRate}`;
                         if(!hsnMap[hsnKey]) {
@@ -1231,7 +1267,6 @@
                     }
                 });
 
-                // HSN Sheet Header without Description Name requirement
                 let hsnData = [["HSN", "Description", "UQC", "Total Quantity", "Total Value", "Taxable Value", "Integrated Tax Amount", "Central Tax Amount", "State/UT Tax Amount", "Cess Amount"]];
                 Object.values(hsnMap).forEach(row => {
                     if(Math.abs(row.qty) > 0.01) {
