@@ -35,7 +35,7 @@
                 <button onclick="openXmlModal()" class="bg-amber-500 hover:bg-amber-600 text-indigo-950 px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-file-export"></i> Tally XML
                 </button>
-                <button onclick="exportGSTR1Excel()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
+                <button onclick="openGstr1Modal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-file-excel"></i> GSTR-1 Excel V2.2
                 </button>
             </div>
@@ -329,6 +329,31 @@
         </div>
     </div>
 
+    <!-- NEW Modal: GSTR-1 Excel Date Range Export -->
+    <div id="gstr1ExportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div class="p-5 bg-blue-600 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg"><i class="fa-solid fa-file-excel mr-2"></i> Export GSTR-1 V2.2 (Date Range)</h3>
+                <button onclick="closeGstr1Modal()" class="hover:text-blue-200 text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-sm text-slate-600 mb-2">Select the date range for GSTR-1 Excel export.</p>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">From Date</label>
+                    <input type="date" id="gstr1FromDate" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">To Date</label>
+                    <input type="date" id="gstr1ToDate" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-200">
+                    <button onclick="closeGstr1Modal()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 text-sm font-medium transition">Cancel</button>
+                    <button onclick="processGstr1RangeExport()" class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-sm transition">Export Excel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
         <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
@@ -583,6 +608,27 @@
                 console.error("Export Error: ", err);
                 alert("An error occurred during export: " + err.message);
             }
+        }
+
+        function openGstr1Modal() {
+            if (invoices.length === 0) {
+                alert("No vouchers available to export.");
+                return;
+            }
+            // Set default dates to current month range or min/max available
+            let dates = invoices.map(i => i.date).filter(Boolean).sort();
+            if (dates.length > 0) {
+                document.getElementById('gstr1FromDate').value = dates[0];
+                document.getElementById('gstr1ToDate').value = dates[dates.length - 1];
+            } else {
+                document.getElementById('gstr1FromDate').valueAsDate = new Date();
+                document.getElementById('gstr1ToDate').valueAsDate = new Date();
+            }
+            document.getElementById('gstr1ExportModal').classList.remove('hidden');
+        }
+
+        function closeGstr1Modal() {
+            document.getElementById('gstr1ExportModal').classList.add('hidden');
         }
 
         function addItemRow(data = null) {
@@ -1173,14 +1219,36 @@
             URL.revokeObjectURL(url);
         }
 
-        // --- GSTR-1 MULTI-SHEET EXCEL EXPORT ---
-        function exportGSTR1Excel() {
-            if (invoices.length === 0) {
-                alert('No data available for GSTR-1 export.');
-                return;
-            }
-
+        // --- GSTR-1 MULTI-SHEET EXCEL EXPORT (DATE RANGE FILTERED) ---
+        function processGstr1RangeExport() {
             try {
+                let fromDateStr = document.getElementById('gstr1FromDate').value;
+                let toDateStr = document.getElementById('gstr1ToDate').value;
+
+                if (!fromDateStr || !toDateStr) {
+                    alert("Please select both From and To dates.");
+                    return;
+                }
+
+                let fromTime = new Date(fromDateStr).getTime();
+                let toTime = new Date(toDateStr).getTime();
+
+                if (fromTime > toTime) {
+                    alert("From Date cannot be later than To Date.");
+                    return;
+                }
+
+                let filteredInvoices = invoices.filter(inv => {
+                    if (!inv.date) return false;
+                    let invTime = new Date(inv.date).getTime();
+                    return invTime >= fromTime && invTime <= toTime;
+                });
+
+                if (filteredInvoices.length === 0) {
+                    alert("No vouchers found in the selected date range.");
+                    return;
+                }
+
                 const gstStateCodes = {
                     "Jammu & Kashmir": "01-Jammu & Kashmir", "Himachal Pradesh": "02-Himachal Pradesh", "Punjab": "03-Punjab",
                     "Chandigarh": "04-Chandigarh", "Uttarakhand": "05-Uttarakhand", "Haryana": "06-Haryana", "Delhi": "07-Delhi",
@@ -1201,7 +1269,7 @@
                 let minSalesNo = null, maxSalesNo = null;
                 let minCNNo = null, maxCNNo = null;
 
-                invoices.forEach(inv => {
+                filteredInvoices.forEach(inv => {
                     let stateName = inv.state || 'Uttar Pradesh';
                     let pos = gstStateCodes[stateName] || stateName;
                     let vchType = inv.voucherType || 'Tata 1mg Sales';
@@ -1289,9 +1357,11 @@
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hsnData), "hsn");
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(docsData), "docs");
 
-                XLSX.writeFile(wb, `GSTR1_V2.2_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
+                XLSX.writeFile(wb, `GSTR1_Report_${fromDateStr}_to_${toDateStr}.xlsx`);
+                closeGstr1Modal();
+
             } catch (err) {
-                alert("Excel Export failed: " + err.message);
+                alert("GSTR-1 Export failed: " + err.message);
                 console.error(err);
             }
         }
