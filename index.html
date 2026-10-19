@@ -32,6 +32,10 @@
                 <button onclick="openInvoiceModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-medium text-sm transition flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-plus"></i> New Voucher
                 </button>
+                <!-- NEW EXPORT TABLE DATA BUTTON RIGHT TO NEW VOUCHER -->
+                <button onclick="exportTableDataExcel()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-file-excel"></i> Export Excel
+                </button>
                 <button onclick="openXmlModal()" class="bg-amber-500 hover:bg-amber-600 text-indigo-950 px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-file-export"></i> Tally XML
                 </button>
@@ -396,6 +400,7 @@
         let invoices = [];
         let currentViewInvoice = null;
         let currentFilter = 'ALL';
+        let currentFilteredList = []; // Holds currently displayed table data for Excel export
 
         window.onload = function() {
             document.getElementById('invDate').valueAsDate = new Date();
@@ -601,7 +606,7 @@
                 }
                 
                 const xmlData = generateTallyXML(selectedInvs);
-                downloadFile(xmlData, `GrxLife_RangeExport_${filterVal}_${new Date().toISOString().slice(0,10)}.xml`);
+                downloadFile(xmlData, `GrxLife_RangeExport_${filterVal}_${new Date().toISOString().slice(0,10)}.xml`, 'application/xml');
                 closeXmlModal();
 
             } catch (err) {
@@ -628,6 +633,66 @@
 
         function closeGstr1Modal() {
             document.getElementById('gstr1ExportModal').classList.add('hidden');
+        }
+
+        // EXPORT CURRENT TABLE DATA TO EXCEL
+        function exportTableDataExcel() {
+            if (!currentFilteredList || currentFilteredList.length === 0) {
+                alert("No table data available to export.");
+                return;
+            }
+
+            try {
+                let excelRows = [["Voucher No", "Type", "Date", "Party Ledger", "State", "Tax Type", "Taxable Value", "Total (Inc. GST)"]];
+
+                currentFilteredList.forEach(inv => {
+                    let subtotal = 0;
+                    let totalTaxRounded = 0;
+                    let isInterstate = (inv.state || 'Uttar Pradesh').trim().toLowerCase() !== 'uttar pradesh';
+                    let vchType = inv.voucherType || 'Tata 1mg Sales';
+                    let isCN = vchType.includes('CN');
+                    let itemsList = inv.items || [];
+                    
+                    itemsList.forEach(item => {
+                        let disc = Number(item.disc) || 0;
+                        let baseAmt = (Number(item.qty) || 0) * (Number(item.rate) || 0);
+                        let amt = parseFloat((baseAmt - (baseAmt * disc / 100)).toFixed(2));
+                        
+                        subtotal += amt;
+                        let rawTax = amt * ((Number(item.gst) || 5) / 100);
+                        if (isInterstate) {
+                            totalTaxRounded += parseFloat(rawTax.toFixed(2));
+                        } else {
+                            let halfTax = parseFloat((rawTax / 2).toFixed(2));
+                            totalTaxRounded += (halfTax * 2);
+                        }
+                    });
+
+                    let unroundedTotal = subtotal + totalTaxRounded;
+                    let grandTotal = Math.round(unroundedTotal);
+                    let sign = isCN ? -1 : 1;
+
+                    excelRows.push([
+                        inv.number || '',
+                        vchType,
+                        inv.date || '',
+                        inv.customer || '',
+                        inv.state || 'Uttar Pradesh',
+                        isInterstate ? 'IGST' : 'CGST+SGST',
+                        Number((subtotal * sign).toFixed(2)),
+                        Number((grandTotal * sign).toFixed(2))
+                    ]);
+                });
+
+                const ws = XLSX.utils.aoa_to_sheet(excelRows);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Vouchers_Table");
+                XLSX.writeFile(wb, `GrxLife_TableData_${currentFilter}_${new Date().toISOString().slice(0,10)}.xlsx`);
+
+            } catch (err) {
+                alert("Table Export failed: " + err.message);
+                console.error(err);
+            }
         }
 
         function addItemRow(data = null) {
@@ -784,7 +849,7 @@
             
             tbody.innerHTML = '';
             
-            const filtered = invoices.filter(inv => {
+            currentFilteredList = invoices.filter(inv => {
                 let vchType = inv.voucherType || 'Tata 1mg Sales';
                 let isCN = vchType.includes('CN');
 
@@ -797,14 +862,14 @@
                 return matchesSearch;
             });
 
-            if (filtered.length === 0) {
+            if (currentFilteredList.length === 0) {
                 emptyState.classList.remove('hidden');
-                updateStats(filtered);
+                updateStats(currentFilteredList);
                 return;
             }
             emptyState.classList.add('hidden');
 
-            filtered.forEach((inv) => {
+            currentFilteredList.forEach((inv) => {
                 let subtotal = 0;
                 let totalTaxRounded = 0;
                 let isInterstate = (inv.state || 'Uttar Pradesh').trim().toLowerCase() !== 'uttar pradesh';
@@ -860,10 +925,9 @@
                 tbody.appendChild(tr);
             });
 
-            updateStats(filtered);
+            updateStats(currentFilteredList);
         }
 
-        // STATS UPDATED ACCORDING TO CURRENT FILTER SELECTION
         function updateStats(filteredList) {
             let totalSales = 0;
             let totalTax = 0;
@@ -1201,14 +1265,14 @@
                 const xmlData = generateTallyXML([currentViewInvoice]);
                 let vType = (currentViewInvoice.voucherType || 'Tata 1mg Sales').replace(/ /g, '');
                 let invNo = (currentViewInvoice.number || 'UNKNOWN').replace(/[^a-zA-Z0-9]/g, '');
-                downloadFile(xmlData, `Tally_${vType}_${invNo}.xml`);
+                downloadFile(xmlData, `Tally_${vType}_${invNo}.xml`, 'application/xml');
             } catch (err) {
                 alert("Export failed: " + err.message);
             }
         }
 
-        function downloadFile(content, filename) {
-            const blob = new Blob([content], { type: 'application/xml;charset=utf-8;' });
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType + ';charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
