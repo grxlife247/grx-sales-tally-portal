@@ -32,8 +32,8 @@
                 <button onclick="openInvoiceModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-medium text-sm transition flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-plus"></i> New Voucher
                 </button>
-                <!-- NEW EXPORT TABLE DATA BUTTON RIGHT TO NEW VOUCHER -->
-                <button onclick="exportTableDataExcel()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
+                <!-- Export Table Data Excel Button right next to New Voucher -->
+                <button onclick="openTableExcelModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-file-excel"></i> Export Excel
                 </button>
                 <button onclick="openXmlModal()" class="bg-amber-500 hover:bg-amber-600 text-indigo-950 px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
@@ -358,6 +358,31 @@
         </div>
     </div>
 
+    <!-- Modal: Table Data Excel Date Range Export -->
+    <div id="tableExcelModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div class="p-5 bg-emerald-700 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg"><i class="fa-solid fa-file-excel mr-2"></i> Export Table Data (Date Range)</h3>
+                <button onclick="closeTableExcelModal()" class="hover:text-emerald-200 text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-sm text-slate-600 mb-2">Select the date range to export table data to Excel.</p>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">From Date</label>
+                    <input type="date" id="tableExcelFromDate" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">To Date</label>
+                    <input type="date" id="tableExcelToDate" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-emerald-600">
+                </div>
+                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-200">
+                    <button onclick="closeTableExcelModal()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 text-sm font-medium transition">Cancel</button>
+                    <button onclick="processTableExcelExport()" class="px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium shadow-sm transition">Export Excel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
         <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
@@ -400,7 +425,7 @@
         let invoices = [];
         let currentViewInvoice = null;
         let currentFilter = 'ALL';
-        let currentFilteredList = []; // Holds currently displayed table data for Excel export
+        let currentFilteredList = [];
 
         window.onload = function() {
             document.getElementById('invDate').valueAsDate = new Date();
@@ -635,17 +660,58 @@
             document.getElementById('gstr1ExportModal').classList.add('hidden');
         }
 
-        // EXPORT CURRENT TABLE DATA TO EXCEL
-        function exportTableDataExcel() {
-            if (!currentFilteredList || currentFilteredList.length === 0) {
-                alert("No table data available to export.");
+        function openTableExcelModal() {
+            if (invoices.length === 0) {
+                alert("No vouchers available to export.");
                 return;
             }
+            let dates = invoices.map(i => i.date).filter(Boolean).sort();
+            if (dates.length > 0) {
+                document.getElementById('tableExcelFromDate').value = dates[0];
+                document.getElementById('tableExcelToDate').value = dates[dates.length - 1];
+            } else {
+                document.getElementById('tableExcelFromDate').valueAsDate = new Date();
+                document.getElementById('tableExcelToDate').valueAsDate = new Date();
+            }
+            document.getElementById('tableExcelModal').classList.remove('hidden');
+        }
 
+        function closeTableExcelModal() {
+            document.getElementById('tableExcelModal').classList.add('hidden');
+        }
+
+        function processTableExcelExport() {
             try {
+                let fromDateStr = document.getElementById('tableExcelFromDate').value;
+                let toDateStr = document.getElementById('tableExcelToDate').value;
+
+                if (!fromDateStr || !toDateStr) {
+                    alert("Please select both From and To dates.");
+                    return;
+                }
+
+                let fromTime = new Date(fromDateStr).getTime();
+                let toTime = new Date(toDateStr).getTime();
+
+                if (fromTime > toTime) {
+                    alert("From Date cannot be later than To Date.");
+                    return;
+                }
+
+                let rangeFiltered = currentFilteredList.filter(inv => {
+                    if (!inv.date) return false;
+                    let invTime = new Date(inv.date).getTime();
+                    return invTime >= fromTime && invTime <= toTime;
+                });
+
+                if (rangeFiltered.length === 0) {
+                    alert("No vouchers found in the selected date range for this filter.");
+                    return;
+                }
+
                 let excelRows = [["Voucher No", "Type", "Date", "Party Ledger", "State", "Tax Type", "Taxable Value", "Total (Inc. GST)"]];
 
-                currentFilteredList.forEach(inv => {
+                rangeFiltered.forEach(inv => {
                     let subtotal = 0;
                     let totalTaxRounded = 0;
                     let isInterstate = (inv.state || 'Uttar Pradesh').trim().toLowerCase() !== 'uttar pradesh';
@@ -687,7 +753,8 @@
                 const ws = XLSX.utils.aoa_to_sheet(excelRows);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Vouchers_Table");
-                XLSX.writeFile(wb, `GrxLife_TableData_${currentFilter}_${new Date().toISOString().slice(0,10)}.xlsx`);
+                XLSX.writeFile(wb, `GrxLife_TableData_${currentFilter}_${fromDateStr}_to_${toDateStr}.xlsx`);
+                closeTableExcelModal();
 
             } catch (err) {
                 alert("Table Export failed: " + err.message);
@@ -1283,7 +1350,7 @@
             URL.revokeObjectURL(url);
         }
 
-        // --- GSTR-1 MULTI-SHEET EXCEL EXPORT (EXPLICIT NUMERIC CASTING FOR SUM) ---
+        // --- GSTR-1 MULTI-SHEET EXCEL EXPORT ---
         function processGstr1RangeExport() {
             try {
                 let fromDateStr = document.getElementById('gstr1FromDate').value;
