@@ -329,7 +329,7 @@
         </div>
     </div>
 
-    <!-- NEW Modal: GSTR-1 Excel Date Range Export -->
+    <!-- Modal: GSTR-1 Excel Date Range Export -->
     <div id="gstr1ExportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
             <div class="p-5 bg-blue-600 text-white flex justify-between items-center">
@@ -615,7 +615,6 @@
                 alert("No vouchers available to export.");
                 return;
             }
-            // Set default dates to current month range or min/max available
             let dates = invoices.map(i => i.date).filter(Boolean).sort();
             if (dates.length > 0) {
                 document.getElementById('gstr1FromDate').value = dates[0];
@@ -800,7 +799,7 @@
 
             if (filtered.length === 0) {
                 emptyState.classList.remove('hidden');
-                updateStats();
+                updateStats(filtered);
                 return;
             }
             emptyState.classList.add('hidden');
@@ -861,15 +860,16 @@
                 tbody.appendChild(tr);
             });
 
-            updateStats();
+            updateStats(filtered);
         }
 
-        function updateStats() {
+        // STATS UPDATED ACCORDING TO CURRENT FILTER SELECTION
+        function updateStats(filteredList) {
             let totalSales = 0;
             let totalTax = 0;
             let customers = new Set();
 
-            invoices.forEach(inv => {
+            filteredList.forEach(inv => {
                 let sub = 0;
                 let tax = 0;
                 let isInterstate = (inv.state || 'Uttar Pradesh').trim().toLowerCase() !== 'uttar pradesh';
@@ -904,7 +904,7 @@
             });
 
             document.getElementById('statTotalSales').innerText = `₹${totalSales.toFixed(2)}`;
-            document.getElementById('statTotalInvoices').innerText = invoices.length;
+            document.getElementById('statTotalInvoices').innerText = filteredList.length;
             document.getElementById('statTotalTax').innerText = `₹${totalTax.toFixed(2)}`;
             document.getElementById('statTotalCustomers').innerText = customers.size;
         }
@@ -1219,7 +1219,7 @@
             URL.revokeObjectURL(url);
         }
 
-        // --- GSTR-1 MULTI-SHEET EXCEL EXPORT (DATE RANGE FILTERED) ---
+        // --- GSTR-1 MULTI-SHEET EXCEL EXPORT (EXPLICIT NUMERIC CASTING FOR SUM) ---
         function processGstr1RangeExport() {
             try {
                 let fromDateStr = document.getElementById('gstr1FromDate').value;
@@ -1289,11 +1289,11 @@
 
                     let itemsList = inv.items || [];
                     itemsList.forEach(item => {
-                        let disc = item.disc || 0;
-                        let baseAmt = (item.qty || 0) * (item.rate || 0);
+                        let disc = Number(item.disc) || 0;
+                        let baseAmt = (Number(item.qty) || 0) * (Number(item.rate) || 0);
                         let amt = parseFloat((baseAmt - (baseAmt * disc / 100)).toFixed(2));
                         
-                        let taxRate = item.gst || 5;
+                        let taxRate = Number(item.gst) || 5;
                         let isInterstate = stateName.toLowerCase() !== 'uttar pradesh';
                         
                         let taxAmt = 0;
@@ -1316,7 +1316,7 @@
                             hsnMap[hsnKey] = { hsn: hsnVal, desc: "", uqc: (item.uom || '').toUpperCase() === 'NOS' ? 'NOS-NUMBERS' : 'BTL-BOTTLES', qty: 0, taxable: 0, rate: taxRate, igst: 0, cgst: 0, sgst: 0 };
                         }
                         
-                        hsnMap[hsnKey].qty += ((item.qty || 0) * sign);
+                        hsnMap[hsnKey].qty += ((Number(item.qty) || 0) * sign);
                         hsnMap[hsnKey].taxable += (amt * sign);
                         
                         if(isInterstate){
@@ -1331,7 +1331,7 @@
                 let b2csData = [["Type", "Place Of Supply", "Applicable % of Tax Rate", "Rate", "Taxable Value", "Cess Amount", "E-Commerce GSTIN"]];
                 Object.values(b2csMap).forEach(row => {
                     if(Math.abs(row.taxable) > 0.01) {
-                        b2csData.push(["OE", row.pos, "", row.rate, row.taxable.toFixed(2), "0.00", ""]);
+                        b2csData.push(["OE", row.pos, "", Number(row.rate), Number(row.taxable.toFixed(2)), 0.00, ""]);
                     }
                 });
 
@@ -1339,7 +1339,18 @@
                 Object.values(hsnMap).forEach(row => {
                     if(Math.abs(row.qty) > 0.01) {
                         let totalVal = row.taxable + row.igst + row.cgst + row.sgst;
-                        hsnData.push([row.hsn, "", row.uqc, row.qty, totalVal.toFixed(2), row.taxable.toFixed(2), row.igst.toFixed(2), row.cgst.toFixed(2), row.sgst.toFixed(2), "0.00"]);
+                        hsnData.push([
+                            row.hsn, 
+                            "", 
+                            row.uqc, 
+                            Number(row.qty), 
+                            Number(totalVal.toFixed(2)), 
+                            Number(row.taxable.toFixed(2)), 
+                            Number(row.igst.toFixed(2)), 
+                            Number(row.cgst.toFixed(2)), 
+                            Number(row.sgst.toFixed(2)), 
+                            0.00
+                        ]);
                     }
                 });
 
