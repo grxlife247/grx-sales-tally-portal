@@ -32,7 +32,6 @@
                 <button onclick="openInvoiceModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-medium text-sm transition flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-plus"></i> New Voucher
                 </button>
-                <!-- Export Table Data Excel Button right next to New Voucher -->
                 <button onclick="openTableExcelModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-file-excel"></i> Export Excel
                 </button>
@@ -271,23 +270,18 @@
         </div>
     </div>
 
-    <!-- Modal: View Invoice & Tally XML Preview -->
+    <!-- Modal: View Invoice Preview Only (No XML Preview Box) -->
     <div id="viewModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto hidden">
         <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
             <div class="p-5 bg-indigo-900 text-white flex justify-between items-center">
-                <h3 class="font-bold text-lg"><i class="fa-solid fa-eye mr-2"></i> Voucher Preview & Tally XML</h3>
+                <h3 class="font-bold text-lg"><i class="fa-solid fa-eye mr-2"></i> Voucher Preview</h3>
                 <button onclick="closeViewModal()" class="text-indigo-200 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
             <div class="p-6 overflow-y-auto flex-grow space-y-6">
-                <!-- Preview Details -->
+                <!-- Preview Details Only -->
                 <div id="invoicePreviewContent" class="space-y-4">
                     <!-- Populated dynamically -->
-                </div>
-
-                <div>
-                    <h4 class="text-xs font-semibold uppercase text-slate-600 mb-2">Tally XML Export Preview</h4>
-                    <pre id="xmlPreviewBox" class="bg-slate-900 text-emerald-400 p-4 rounded-xl text-xs font-mono overflow-x-auto max-h-60"></pre>
                 </div>
             </div>
 
@@ -1316,12 +1310,6 @@
                     <p class="text-sm font-bold text-${colorTheme}-900 mt-1 border-t border-slate-200 pt-1">Grand Total: ₹${grandTotal.toFixed(2)}</p>
                 </div>
             `;
-
-            try {
-                document.getElementById('xmlPreviewBox').innerText = generateTallyXML([currentViewInvoice]);
-            } catch (err) {
-                document.getElementById('xmlPreviewBox').innerText = "Error generating XML preview: " + err.message;
-            }
             
             document.getElementById('viewModal').classList.remove('hidden');
         }
