@@ -14,27 +14,29 @@
     <!-- SheetJS for Excel Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-    <!-- PRINT STYLING TO HIDE EVERYTHING EXCEPT PREVIEW MODAL -->
+    <!-- PRINT STYLING -->
     <style>
         @media print {
-            body * {
-                visibility: hidden;
-            }
-            #viewModal, #viewModal * {
-                visibility: visible;
+            body > * {
+                display: none !important;
             }
             #viewModal {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                height: auto;
+                position: fixed !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
                 background: white !important;
-                padding: 0;
-                margin: 0;
+                z-index: 99999 !important;
+                display: block !important;
+                padding: 20px !important;
             }
-            #viewModal .bg-indigo-950, #viewModal button, #viewModal .bg-slate-50 {
+            #viewModal .bg-indigo-900, #viewModal button, #viewModal .bg-slate-50 {
                 display: none !important;
+            }
+            #invoicePreviewContent {
+                display: block !important;
+                width: 100% !important;
             }
         }
     </style>
@@ -295,7 +297,7 @@
         </div>
     </div>
 
-    <!-- Modal: View Invoice Preview with PDF Download & ESC Close -->
+    <!-- Modal: View Invoice Preview with Clean Single-Page PDF Print -->
     <div id="viewModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto hidden">
         <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
             <div class="p-5 bg-indigo-900 text-white flex justify-between items-center">
