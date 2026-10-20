@@ -13,6 +13,31 @@
     
     <!-- SheetJS for Excel Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- PRINT STYLING TO HIDE EVERYTHING EXCEPT PREVIEW MODAL -->
+    <style>
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #viewModal, #viewModal * {
+                visibility: visible;
+            }
+            #viewModal {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: auto;
+                background: white !important;
+                padding: 0;
+                margin: 0;
+            }
+            #viewModal .bg-indigo-950, #viewModal button, #viewModal .bg-slate-50 {
+                display: none !important;
+            }
+        }
+    </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
 
@@ -32,7 +57,6 @@
                 <button onclick="openInvoiceModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-medium text-sm transition flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-plus"></i> New Voucher
                 </button>
-                <!-- Export Table Data Excel Button right next to New Voucher -->
                 <button onclick="openTableExcelModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center gap-2 shadow-sm">
                     <i class="fa-solid fa-file-excel"></i> Export Excel
                 </button>
