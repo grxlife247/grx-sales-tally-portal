@@ -495,7 +495,7 @@
                         const dA = a.date ? new Date(a.date).getTime() : 0;
                         const dB = b.date ? new Date(b.date).getTime() : 0;
                         if (dA !== dB) return dB - dA; 
-                        return (b.number || "").localeCompare(a.number || ""); 
+                        return (b.number || "").localeCompare(b.number || ""); 
                     });
                 }
                 generateNextInvoiceNo();
@@ -506,14 +506,13 @@
         function generateNextInvoiceNo() {
             let selectedType = document.querySelector('input[name="voucherType"]:checked').value;
             let isCN = selectedType.includes('CN');
-            // Fixed base prefix
-            let prefix = isCN ? 'CR0831926' : 'C0831926';
+            let companyPrefix = isCN ? 'CR0831926' : 'C0831926';
             
             let filteredInvs = invoices.filter(i => (i.voucherType || 'Tata 1mg Sales') === selectedType);
             
             let maxNum = 0;
             filteredInvs.forEach(inv => {
-                let numStr = (inv.number || "").replace(prefix, "");
+                let numStr = (inv.number || "").replace(companyPrefix, "");
                 let num = parseInt(numStr, 10);
                 if (!isNaN(num) && num > maxNum) {
                     maxNum = num;
@@ -522,12 +521,12 @@
             
             let nextCount = maxNum > 0 ? maxNum + 1 : 1;
             
-            // Dynamic digit width adjustment: 99 se 100 par jane par zeros ka count automatic adjust hoga
+            // Dynamic width padding: 1-99 ke liye 7 zeros, 100-999 ke liye 6 zeros, etc. taaki total length maintain rahe
             let currentStrNum = String(nextCount);
-            let targetWidth = currentStrNum.length <= 2 ? 10 : (currentStrNum.length === 3 ? 9 : 8);
+            let targetWidth = currentStrNum.length <= 2 ? 9 : (currentStrNum.length === 3 ? 8 : 7);
             let paddedNum = currentStrNum.padStart(targetWidth, '0');
             
-            const nextNo = `${prefix}${paddedNum}`;
+            const nextNo = `${companyPrefix}${paddedNum}`;
             document.getElementById('invNumber').value = nextNo;
         }
 
