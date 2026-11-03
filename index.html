@@ -506,8 +506,8 @@
         function generateNextInvoiceNo() {
             let selectedType = document.querySelector('input[name="voucherType"]:checked').value;
             let isCN = selectedType.includes('CN');
-            // Base prefix format: 14 digits after prefix
-            let prefix = isCN ? 'CR083192600000' : 'C0831926000000';
+            // Fixed base prefix
+            let prefix = isCN ? 'CR0831926' : 'C0831926';
             
             let filteredInvs = invoices.filter(i => (i.voucherType || 'Tata 1mg Sales') === selectedType);
             
@@ -521,10 +521,13 @@
             });
             
             let nextCount = maxNum > 0 ? maxNum + 1 : 1;
-            // Dynamic width padding support for 3 digits and beyond (e.g. 99 -> 100)
-            let padLength = Math.max(2, String(nextCount).length);
-            let basePrefixTrimmed = prefix.slice(0, prefix.length - padLength);
-            const nextNo = `${basePrefixTrimmed}${String(nextCount).padStart(padLength, '0')}`;
+            
+            // Dynamic digit width adjustment: 99 se 100 par jane par zeros ka count automatic adjust hoga
+            let currentStrNum = String(nextCount);
+            let targetWidth = currentStrNum.length <= 2 ? 10 : (currentStrNum.length === 3 ? 9 : 8);
+            let paddedNum = currentStrNum.padStart(targetWidth, '0');
+            
+            const nextNo = `${prefix}${paddedNum}`;
             document.getElementById('invNumber').value = nextNo;
         }
 
