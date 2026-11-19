@@ -519,8 +519,8 @@
             
             let nextCount = maxNum > 0 ? maxNum + 1 : 1;
             
-            // Exact padding logic: 1 to 99 gets 6 zeros, 100+ gets 5 zeros (total 8 numeric digits)
-            let paddedNum = String(nextCount).padStart(7, '0');
+            // Exact padding logic: 1 to 99 gets 6 zeros (total 8 digits), 100+ gets 5 zeros (total 8 digits)
+            let paddedNum = String(nextCount).padStart(8, '0');
             const nextNo = `${prefix}${paddedNum}`;
             document.getElementById('invNumber').value = nextNo;
         }
@@ -962,7 +962,7 @@
                 return matchesSearch;
             });
 
-            // Keep descending sorted order in table view as well
+            // Keep descending sorted order in table view so highest number is always on top
             currentFilteredList.sort((a, b) => {
                 return (b.number || "").localeCompare(a.number || "", undefined, { numeric: true });
             });
@@ -1091,14 +1091,27 @@
                     case '<': return '&lt;';
                     case '>': return '&gt;';
                     case '&': return '&amp;';
-                    case '\'': return '&apos;';
+                    case ''': return '&apos;';
                     case '"': return '&quot;';
                 }
             });
         }
 
         function generateTallyXML(invList) {
-            let xml = `<ENVELOPE>\n <HEADER>\n  <TALLYREQUEST>Import Data</TALLYREQUEST>\n </HEADER>\n <BODY>\n  <IMPORTDATA>\n   <REQUESTDESC>\n    <REPORTNAME>Vouchers</REPORTNAME>\n    <STATICVARIABLES>\n     <SVCURRENTCOMPANY>GRXLIFE RETAIL AND NUTRITION PRIVATE LIMITED</SVCURRENTCOMPANY>\n    </STATICVARIABLES>\n   </REQUESTDESC>\n   <REQUESTDATA>\n`;
+            let xml = `<ENVELOPE>
+ <HEADER>
+  <TALLYREQUEST>Import Data</TALLYREQUEST>
+ </HEADER>
+ <BODY>
+  <IMPORTDATA>
+   <REQUESTDESC>
+    <REPORTNAME>Vouchers</REPORTNAME>
+    <STATICVARIABLES>
+     <SVCURRENTCOMPANY>GRXLIFE RETAIL AND NUTRITION PRIVATE LIMITED</SVCURRENTCOMPANY>
+    </STATICVARIABLES>
+   </REQUESTDESC>
+   <REQUESTDATA>
+`;
 
             invList.forEach(inv => {
                 let vchTypeName = inv.voucherType || 'Tata 1mg Sales';
@@ -1153,26 +1166,46 @@
                 let itemAmountXML = isCreditNote ? `-${subtotal.toFixed(2)}` : `${subtotal.toFixed(2)}`;
                 let isDiscountXml = hasDiscounts ? 'Yes' : 'No';
 
-                xml += `    <TALLYMESSAGE xmlns:UDF="TallyUDF">\n`;
-                xml += `     <VOUCHER VCHTYPE="${vchTypeName}" ACTION="Create" OBJVIEW="Invoice Voucher View">\n`;
-                xml += `      <DATE>${tallyDate}</DATE>\n`;
-                xml += `      <VCHSTATUSDATE>${tallyDate}</VCHSTATUSDATE>\n`;
-                xml += `      <GSTREGISTRATIONTYPE>Unregistered/Consumer</GSTREGISTRATIONTYPE>\n`;
-                xml += `      <STATENAME>${escapeXml(stateName)}</STATENAME>\n`;
-                xml += `      <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>\n`;
-                xml += `      <PLACEOFSUPPLY>${escapeXml(stateName)}</PLACEOFSUPPLY>\n`;
-                xml += `      <VOUCHERTYPENAME>${vchTypeName}</VOUCHERTYPENAME>\n`;
-                xml += `      <PARTYNAME>${escapeXml(inv.customer)}</PARTYNAME>\n`;
-                xml += `      <PARTYLEDGERNAME>${escapeXml(inv.customer)}</PARTYLEDGERNAME>\n`;
-                xml += `      <VOUCHERNUMBER>${escapeXml(inv.number)}</VOUCHERNUMBER>\n`;
-                xml += `      <BASICBUYERNAME>${escapeXml(inv.customer)}</BASICBUYERNAME>\n`;
-                xml += `      <PARTYMAILINGNAME>${escapeXml(effectiveMailingName)}</PARTYMAILINGNAME>\n`;
-                xml += `      <CONSIGNEEMAILINGNAME>${escapeXml(effectiveMailingName)}</CONSIGNEEMAILINGNAME>\n`;
-                xml += `      <CONSIGNEESTATENAME>${escapeXml(stateName)}</CONSIGNEESTATENAME>\n`;
-                xml += `      <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>\n`;
-                xml += `      <VCHENTRYMODE>Item Invoice</VCHENTRYMODE>\n`;
-                xml += `      <ISINVOICE>Yes</ISINVOICE>\n`;
-                xml += `      <HASDISCOUNTS>${isDiscountXml}</HASDISCOUNTS>\n`;
+                xml += `    <TALLYMESSAGE xmlns:UDF="TallyUDF">
+`;
+                xml += `     <VOUCHER VCHTYPE="${vchTypeName}" ACTION="Create" OBJVIEW="Invoice Voucher View">
+`;
+                xml += `      <DATE>${tallyDate}</DATE>
+`;
+                xml += `      <VCHSTATUSDATE>${tallyDate}</VCHSTATUSDATE>
+`;
+                xml += `      <GSTREGISTRATIONTYPE>Unregistered/Consumer</GSTREGISTRATIONTYPE>
+`;
+                xml += `      <STATENAME>${escapeXml(stateName)}</STATENAME>
+`;
+                xml += `      <COUNTRYOFRESIDENCE>India</COUNTRYOFRESIDENCE>
+`;
+                xml += `      <PLACEOFSUPPLY>${escapeXml(stateName)}</PLACEOFSUPPLY>
+`;
+                xml += `      <VOUCHERTYPENAME>${vchTypeName}</VOUCHERTYPENAME>
+`;
+                xml += `      <PARTYNAME>${escapeXml(inv.customer)}</PARTYNAME>
+`;
+                xml += `      <PARTYLEDGERNAME>${escapeXml(inv.customer)}</PARTYLEDGERNAME>
+`;
+                xml += `      <VOUCHERNUMBER>${escapeXml(inv.number)}</VOUCHERNUMBER>
+`;
+                xml += `      <BASICBUYERNAME>${escapeXml(inv.customer)}</BASICBUYERNAME>
+`;
+                xml += `      <PARTYMAILINGNAME>${escapeXml(effectiveMailingName)}</PARTYMAILINGNAME>
+`;
+                xml += `      <CONSIGNEEMAILINGNAME>${escapeXml(effectiveMailingName)}</CONSIGNEEMAILINGNAME>
+`;
+                xml += `      <CONSIGNEESTATENAME>${escapeXml(stateName)}</CONSIGNEESTATENAME>
+`;
+                xml += `      <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+`;
+                xml += `      <VCHENTRYMODE>Item Invoice</VCHENTRYMODE>
+`;
+                xml += `      <ISINVOICE>Yes</ISINVOICE>
+`;
+                xml += `      <HASDISCOUNTS>${isDiscountXml}</HASDISCOUNTS>
+`;
 
                 itemsList.forEach(item => {
                     let disc = item.disc || 0;
@@ -1182,65 +1215,111 @@
                     let uomVal = item.uom || 'Btl';
                     let qtyVal = item.qty || 0;
                     
-                    xml += `      <ALLINVENTORYENTRIES.LIST>\n`;
-                    xml += `       <STOCKITEMNAME>${escapeXml(item.name)}</STOCKITEMNAME>\n`;
-                    xml += `       <GSTOVRDNTAXABILITY>Taxable</GSTOVRDNTAXABILITY>\n`;
-                    xml += `       <GSTSOURCETYPE>Stock Item</GSTSOURCETYPE>\n`;
-                    xml += `       <GSTHSNNAME>${escapeXml(item.hsn)}</GSTHSNNAME>\n`;
-                    xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
-                    xml += `       <RATE>${(item.rate || 0).toFixed(2)}/${uomVal}</RATE>\n`;
-                    if(disc > 0) xml += `       <DISCOUNT>${disc}</DISCOUNT>\n`;
-                    xml += `       <AMOUNT>${invAmountXML}</AMOUNT>\n`;
-                    xml += `       <ACTUALQTY> ${qtyVal}.0 ${uomVal}</ACTUALQTY>\n`;
-                    xml += `       <BILLEDQTY> ${qtyVal}.0 ${uomVal}</BILLEDQTY>\n`;
-                    xml += `       <ACCOUNTINGALLOCATIONS.LIST>\n`;
-                    xml += `        <LEDGERNAME>SALES B2C @${item.gst || 5}%</LEDGERNAME>\n`;
-                    xml += `        <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
-                    xml += `        <AMOUNT>${invAmountXML}</AMOUNT>\n`;
-                    xml += `       </ACCOUNTINGALLOCATIONS.LIST>\n`;
-                    xml += `      </ALLINVENTORYENTRIES.LIST>\n`;
+                    xml += `      <ALLINVENTORYENTRIES.LIST>
+`;
+                    xml += `       <STOCKITEMNAME>${escapeXml(item.name)}</STOCKITEMNAME>
+`;
+                    xml += `       <GSTOVRDNTAXABILITY>Taxable</GSTOVRDNTAXABILITY>
+`;
+                    xml += `       <GSTSOURCETYPE>Stock Item</GSTSOURCETYPE>
+`;
+                    xml += `       <GSTHSNNAME>${escapeXml(item.hsn)}</GSTHSNNAME>
+`;
+                    xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>
+`;
+                    xml += `       <RATE>${(item.rate || 0).toFixed(2)}/${uomVal}</RATE>
+`;
+                    if(disc > 0) xml += `       <DISCOUNT>${disc}</DISCOUNT>
+`;
+                    xml += `       <AMOUNT>${invAmountXML}</AMOUNT>
+`;
+                    xml += `       <ACTUALQTY> ${qtyVal}.0 ${uomVal}</ACTUALQTY>
+`;
+                    xml += `       <BILLEDQTY> ${qtyVal}.0 ${uomVal}</BILLEDQTY>
+`;
+                    xml += `       <ACCOUNTINGALLOCATIONS.LIST>
+`;
+                    xml += `        <LEDGERNAME>SALES B2C @${item.gst || 5}%</LEDGERNAME>
+`;
+                    xml += `        <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>
+`;
+                    xml += `        <AMOUNT>${invAmountXML}</AMOUNT>
+`;
+                    xml += `       </ACCOUNTINGALLOCATIONS.LIST>
+`;
+                    xml += `      </ALLINVENTORYENTRIES.LIST>
+`;
                 });
 
-                xml += `      <LEDGERENTRIES.LIST>\n`;
-                xml += `       <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>\n`;
-                xml += `       <ISDEEMEDPOSITIVE>${partyIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
-                xml += `       <ISPARTYLEDGER>Yes</ISPARTYLEDGER>\n`;
-                xml += `       <AMOUNT>${partyAmountXML}</AMOUNT>\n`;
-                xml += `       <BILLALLOCATIONS.LIST>\n`;
-                xml += `        <NAME>${escapeXml(inv.number)}</NAME>\n`;
-                xml += `        <BILLTYPE>New Ref</BILLTYPE>\n`;
-                xml += `        <AMOUNT>${partyAmountXML}</AMOUNT>\n`;
-                xml += `       </BILLALLOCATIONS.LIST>\n`;
-                xml += `      </LEDGERENTRIES.LIST>\n`;
+                xml += `      <LEDGERENTRIES.LIST>
+`;
+                xml += `       <LEDGERNAME>${escapeXml(inv.customer)}</LEDGERNAME>
+`;
+                xml += `       <ISDEEMEDPOSITIVE>${partyIsDeemedPos}</ISDEEMEDPOSITIVE>
+`;
+                xml += `       <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+`;
+                xml += `       <AMOUNT>${partyAmountXML}</AMOUNT>
+`;
+                xml += `       <BILLALLOCATIONS.LIST>
+`;
+                xml += `        <NAME>${escapeXml(inv.number)}</NAME>
+`;
+                xml += `        <BILLTYPE>New Ref</BILLTYPE>
+`;
+                xml += `        <AMOUNT>${partyAmountXML}</AMOUNT>
+`;
+                xml += `       </BILLALLOCATIONS.LIST>
+`;
+                xml += `      </LEDGERENTRIES.LIST>
+`;
 
                 if (isInterstate) {
                     for (let [rate, fullTax] of Object.entries(processedTaxMap)) {
                         let taxAmtXML = isCreditNote ? `-${fullTax.toFixed(2)}` : `${fullTax.toFixed(2)}`;
-                        xml += `      <LEDGERENTRIES.LIST>\n`;
-                        xml += `       <LEDGERNAME>OUTPUT IGST @${rate}%</LEDGERNAME>\n`;
-                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
-                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
-                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>\n`;
-                        xml += `      </LEDGERENTRIES.LIST>\n`;
+                        xml += `      <LEDGERENTRIES.LIST>
+`;
+                        xml += `       <LEDGERNAME>OUTPUT IGST @${rate}%</LEDGERNAME>
+`;
+                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>
+`;
+                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>
+`;
+                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>
+`;
+                        xml += `      </LEDGERENTRIES.LIST>
+`;
                     }
                 } else {
                     for (let [rate, halfTax] of Object.entries(processedTaxMap)) {
                         let halfRate = parseFloat(rate) / 2;
                         let taxAmtXML = isCreditNote ? `-${halfTax.toFixed(2)}` : `${halfTax.toFixed(2)}`;
 
-                        xml += `      <LEDGERENTRIES.LIST>\n`;
-                        xml += `       <LEDGERNAME>OUTPUT CGST @${halfRate}%</LEDGERNAME>\n`;
-                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
-                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
-                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>\n`;
-                        xml += `      </LEDGERENTRIES.LIST>\n`;
+                        xml += `      <LEDGERENTRIES.LIST>
+`;
+                        xml += `       <LEDGERNAME>OUTPUT CGST @${halfRate}%</LEDGERNAME>
+`;
+                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>
+`;
+                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>
+`;
+                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>
+`;
+                        xml += `      </LEDGERENTRIES.LIST>
+`;
 
-                        xml += `      <LEDGERENTRIES.LIST>\n`;
-                        xml += `       <LEDGERNAME>OUTPUT SGST @${halfRate}%</LEDGERNAME>\n`;
-                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>\n`;
-                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
-                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>\n`;
-                        xml += `      </LEDGERENTRIES.LIST>\n`;
+                        xml += `      <LEDGERENTRIES.LIST>
+`;
+                        xml += `       <LEDGERNAME>OUTPUT SGST @${halfRate}%</LEDGERNAME>
+`;
+                        xml += `       <ISDEEMEDPOSITIVE>${itemIsDeemedPos}</ISDEEMEDPOSITIVE>
+`;
+                        xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>
+`;
+                        xml += `       <AMOUNT>${taxAmtXML}</AMOUNT>
+`;
+                        xml += `      </LEDGERENTRIES.LIST>
+`;
                     }
                 }
 
@@ -1256,20 +1335,32 @@
                         finalRoundAmt = roundOffAmt;
                     }
                     
-                    xml += `      <LEDGERENTRIES.LIST>\n`;
-                    xml += `       <ROUNDTYPE>Normal Rounding</ROUNDTYPE>\n`;
-                    xml += `       <LEDGERNAME>Round Off</LEDGERNAME>\n`;
-                    xml += `       <ISDEEMEDPOSITIVE>${isDeemedPos}</ISDEEMEDPOSITIVE>\n`;
-                    xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>\n`;
-                    xml += `       <AMOUNT>${finalRoundAmt.toFixed(2)}</AMOUNT>\n`;
-                    xml += `      </LEDGERENTRIES.LIST>\n`;
+                    xml += `      <LEDGERENTRIES.LIST>
+`;
+                    xml += `       <ROUNDTYPE>Normal Rounding</ROUNDTYPE>
+`;
+                    xml += `       <LEDGERNAME>Round Off</LEDGERNAME>
+`;
+                    xml += `       <ISDEEMEDPOSITIVE>${isDeemedPos}</ISDEEMEDPOSITIVE>
+`;
+                    xml += `       <ISPARTYLEDGER>No</ISPARTYLEDGER>
+`;
+                    xml += `       <AMOUNT>${finalRoundAmt.toFixed(2)}</AMOUNT>
+`;
+                    xml += `      </LEDGERENTRIES.LIST>
+`;
                 }
 
-                xml += `     </VOUCHER>\n`;
-                xml += `    </TALLYMESSAGE>\n`;
+                xml += `     </VOUCHER>
+`;
+                xml += `    </TALLYMESSAGE>
+`;
             });
 
-            xml += `   </REQUESTDATA>\n  </IMPORTDATA>\n </BODY>\n</ENVELOPE>`;
+            xml += `   </REQUESTDATA>
+  </IMPORTDATA>
+ </BODY>
+</ENVELOPE>`;
             return xml;
         }
 
@@ -1437,7 +1528,12 @@
                 let minSalesNo = null, maxSalesNo = null;
                 let minCNNo = null, maxCNNo = null;
 
-                filteredInvoices.forEach(inv => {
+                // Ensure GSTR-1 document sequence checks run in ascending voucher order
+                let sortedForGstr1 = [...filteredInvoices].sort((a, b) => {
+                    return (a.number || "").localeCompare(b.number || "", undefined, { numeric: true });
+                });
+
+                sortedForGstr1.forEach(inv => {
                     let stateName = inv.state || 'Uttar Pradesh';
                     let pos = gstStateCodes[stateName] || stateName;
                     let vchType = inv.voucherType || 'Tata 1mg Sales';
@@ -1447,12 +1543,12 @@
 
                     if(isCN) {
                         totalCNCount++;
-                        if(!minCNNo || invNumberStr < minCNNo) minCNNo = invNumberStr;
-                        if(!maxCNNo || invNumberStr > maxCNNo) maxCNNo = invNumberStr;
+                        if(!minCNNo || invNumberStr.localeCompare(minCNNo, undefined, { numeric: true }) < 0) minCNNo = invNumberStr;
+                        if(!maxCNNo || invNumberStr.localeCompare(maxCNNo, undefined, { numeric: true }) > 0) maxCNNo = invNumberStr;
                     } else {
                         totalSalesCount++;
-                        if(!minSalesNo || invNumberStr < minSalesNo) minSalesNo = invNumberStr;
-                        if(!maxSalesNo || invNumberStr > maxSalesNo) maxSalesNo = invNumberStr;
+                        if(!minSalesNo || invNumberStr.localeCompare(minSalesNo, undefined, { numeric: true }) < 0) minSalesNo = invNumberStr;
+                        if(!maxSalesNo || invNumberStr.localeCompare(maxSalesNo, undefined, { numeric: true }) > 0) maxSalesNo = invNumberStr;
                     }
 
                     let itemsList = inv.items || [];
@@ -1547,3 +1643,4 @@
     </script>
 </body>
 </html>
+Processed and analyzed in code
